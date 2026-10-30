@@ -79,12 +79,12 @@ class ThinPageTests(unittest.TestCase):
         self.assertIn("digitalocean-pricing/", "".join(urls))
         self.assertIn("buyvm-pricing/", "".join(urls))
         self.assertIn("ovhcloud-pricing/", "".join(urls))
-        self.assertGreaterEqual(len(urls),60)
+        self.assertGreaterEqual(len(urls),8)
 
     def test_unverified_legacy_provider_urls_redirect_to_real_comparison(self):
         build.build()
         redirects=(build.OUT/"_redirects").read_text("utf-8")
-        self.assertIn("/providers/hetzner/ /compare/ 301",redirects)
+        self.assertIn("/providers/hetzner/ /hetzner-pricing/ 301",redirects)
         self.assertIn("/providers/hostzealot/ /compare/ 301",redirects)
         self.assertIn("/providers/digitalocean/ /digitalocean-pricing/ 301",redirects)
         self.assertIn("/providers/ovhcloud/ /ovhcloud-pricing/ 301",redirects)

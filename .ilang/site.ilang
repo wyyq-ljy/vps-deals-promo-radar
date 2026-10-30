@@ -3,7 +3,7 @@
 ::STATE{@SITE, brand:vps-deals, niche:VPS hosting offers, domain:vps.madebyyong.com, base_url:https://vps.madebyyong.com, locale:en-US, currency:USD, frequency_hours:6}
 ::MODULE{PROVIDERS|title:官方提供商和抓取来源}
 DigitalOcean | https://www.digitalocean.com | https://www.digitalocean.com/pricing/droplets |
-Hetzner | https://www.hetzner.com | https://www.hetzner.com/cloud/ |
+Hetzner | https://www.hetzner.com | https://www.hetzner.com/cloud/general-purpose/ |
 Hostinger | https://www.hostinger.com | https://www.hostinger.com/vps-hosting |
 IONOS | https://www.ionos.com | https://www.ionos.com/servers/vps.html |
 DreamHost | https://www.dreamhost.com | https://www.dreamhost.com/hosting/vps/ |

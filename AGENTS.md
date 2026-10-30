@@ -8,6 +8,9 @@
 ::RULE{空壳厂商不生成页面也不进入sitemap,仅有真实deal或至少三条官方USD型号价格能索引}
 ::RULE{官方标价页与促销deal页严格分开,价格出处+核实时间+计费说明齐全}
 ::RULE{所有内部状态编码必须由public_copy映射,未知状态也使用人话兜底}
+::RULE{vendor pricing主词可含整个官方型号表；型号cost词缺>=100经用户提供的月搜证据，不生成独立页}
+::RULE{历史型号cost页与低搜索量分类页必须有301进入对应pricing页；不能用数字目标逼迫创作空页}
+::RULE{Hetzner USD只引用官方指定US HIL1区域加独立官方JSON，Cloudways月费按其管理服务报价，不得冒充底层DigitalOcean售价}
 ::BOUNDARY{never:发明价格 优惠 佣金 到期日期 伪造评价 绕过反爬 抓登录数据 静默替换官网链接|scope:permanent}
 ::RULE{scraper.py build.py 都必须读取 .ilang/site.ilang}
 ::RULE{找不到同一型号官方常规原价+促销价+条件 => 0条deal,仅保留厂商页}

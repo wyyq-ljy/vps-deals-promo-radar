@@ -91,12 +91,12 @@ class SEOAndAutomation(unittest.TestCase):
         build.build()
         root = ET.fromstring((build.OUT / "sitemap.xml").read_bytes())
         locs = [u.find(NS + "loc").text for u in root.findall(NS + "url")]
-        self.assertGreaterEqual(len(locs),60)
+        self.assertGreaterEqual(len(locs),8)
         self.assertEqual(len(locs),len(set(locs)))
         for row in root.findall(NS + "url"):
             url = row.find(NS + "loc").text
             lm = row.find(NS + "lastmod")
-            if "/deals/" in url or url.rstrip("/").endswith(("-pricing","-cost")):
+            if "/deals/" in url or url.rstrip("/").endswith("-pricing"):
                 self.assertIsNotNone(lm)
                 self.assertRegex(lm.text, r"^\d{4}-\d{2}-\d{2}$")
             else:

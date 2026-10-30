@@ -19,12 +19,14 @@ NOTES = {
  "DigitalOcean":"The vendor publishes an hourly usage price and monthly cap. Actual usage charges may differ.",
  "OVHcloud":"The vendor publishes a starting USD monthly price, not a fixed configuration checkout total; location and selections can change it.",
  "BuyVM":"The vendor publishes a named KVM slice monthly rate; stock and any optional extras must be checked separately.",
+ "Cloudways":"Published managed DigitalOcean Standard server rates include Cloudways management; taxes and optional backup fees are separate.",
+ "Hetzner":"USD monthly cap for US Hillsboro HIL1 location, before VAT and optional IPv4, cross-checked with current first-party pricing JSON. Some configurations may be temporarily unavailable.",
 }
 def esc(x):return html.escape(str(x or ""),quote=True)
 def slug(x):return re.sub("-+","-",re.sub("[^a-z0-9]+","-",x.lower())).strip("-")
 def price(x):return "$"+esc(x["monthly_usd"])+" USD / month"
 def model_route(name,x):return slug(name)+"-"+slug(x["model"])+"-cost/"
-def row_table(name,items,links=True):
+def row_table(name,items,links=False):
  head='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th>Model</th><th>Monthly USD</th><th>CPU</th><th>RAM</th><th>SSD</th><th>Transfer</th></tr></thead><tbody>'
  body=''
  for x in items:
@@ -76,7 +78,10 @@ def build_pricing(data,save,page,base=''):
    for fam,group in groups.items():
     if fam in FAMILIES:
      title,route,purpose=FAMILIES[fam]
-     text+=f'<p><a href="/{route}/">{esc(title)}</a>: {esc(purpose)}; {len(group)} listed configurations.</p>'
+     if fam=="Basic":
+      text+=f'<p><a href="/{route}/">{esc(title)}</a>: {esc(purpose)}; {len(group)} listed configurations.</p>'
+     else:
+      text+=f'<p><strong>{esc(title)}:</strong> {esc(purpose)}; {len(group)} configurations in the table above.</p>'
    text+='</section>'
   pairs=(("DigitalOcean","OVHcloud"),("DigitalOcean","BuyVM"),("OVHcloud","BuyVM"))
   comparison_links=[(left,right) for left,right in pairs if name in (left,right) and left in ready and right in ready]
@@ -90,45 +95,36 @@ def build_pricing(data,save,page,base=''):
          f'{evidence(items[0])}</section>')
   write(main,f'{name} Pricing {items[0]["checked_at"][:7]} — Official USD Monthly Costs',
         f'Official {name} pricing, RAM, CPU, storage and USD monthly costs across {len(items)} configurations.',text,items)
-  for r in items:
-   family=r.get("family") or "Other"
-   others=sorted((x for x in groups[family] if x["model"]!=r["model"]),key=lambda x:abs(Decimal(x["monthly_usd"])-Decimal(r["monthly_usd"])))[:3]
-   context=FAMILIES[family][2] if name=="DigitalOcean" and family in FAMILIES else 'Check your workload requirements against the stated CPU, RAM and storage before ordering.'
-   details=(f'<div class="eyebrow">Specific configuration cost</div><h1>{esc(name)} {esc(r["model"])} Cost</h1>'
-      f'<p class="lead">Published monthly amount: {price(r)}. This figure applies to this named configuration, not to every model offered by the vendor.</p>'
-      '<section class="card"><h2>Exact configuration and rate</h2>'
-      f'<p>Model: <strong>{esc(r["model"])}</strong></p><p>Monthly USD: <strong>{price(r)}</strong></p>'
-      f'<p>CPU: {esc(r["cpu"])}</p><p>RAM: {esc(r["memory"])}</p><p>SSD: {esc(r["storage"])}</p>'
-      f'<p>Transfer: {esc(r.get("transfer") or "See source")}</p></section>'
-      f'<section class="card"><h2>Typical fit and billing considerations</h2><p>{esc(context)}. {esc(NOTES[name])}</p>')
-   memory=re.search(r'(\d+(?:\.\d+)?)\s*(MiB|MB|GiB|GB)',r["memory"],re.I)
-   cpu=re.search(r'(\d+)\s*(?:vCPU|vCore|Core)',r["cpu"],re.I)
-   cost=Decimal(r["monthly_usd"])
-   if memory:
-    m=Decimal(memory.group(1)) / (1024 if memory.group(2).lower() in ("mib","mb") else 1)
-    if m>0:details+=f'<p>Monthly USD divided by stated RAM: {cost/m:.2f} USD per GiB (a simple ratio, not a performance benchmark).</p>'
-   if cpu and int(cpu.group(1))>0:
-    details+=f'<p>Monthly USD divided by stated CPUs: {cost/Decimal(cpu.group(1)):.2f} USD per CPU (not a CPU-speed ranking).</p>'
-   details+='</section>'
-   if others:details+='<section class="card"><h2>Other nearby sizes in this product family</h2>'+row_table(name,others)+'</section>'
-   details+='<section class="card"><h2>Official rate verification</h2>'+evidence(r)+'</section>'
-   details+=f'<p><a href="/{main}">Back to {esc(name)} pricing</a></p>'
-   route=model_route(name,r)
-   write(route,f'{name} {r["model"]} Cost — {r["monthly_usd"]} USD/mo',
-         f'{name} {r["model"]}: {r["monthly_usd"]} USD monthly, {r["cpu"]}, {r["memory"]} and {r["storage"]}, official source and verification time.',details,[r])
+  # No individual configuration has a supplied >=100 US monthly search
+  # volume. Consolidate every former /...-cost/ URL into its evidence-backed
+  # vendor pricing overview (or verified Droplet pricing family).
+  for rec in items:
+   old=model_route(name,rec)
+   target=main
+   if name=="DigitalOcean" and rec.get("family")=="Basic":
+    target="digitalocean-droplet-pricing/"
+   redirects.append(f"/{old} /{target} 301")
   if name=="DigitalOcean":
-   for fam,(title,path,purpose) in FAMILIES.items():
-    group=groups.get(fam,[])
-    if len(group)<3:continue
-    detail=(f'<div class="eyebrow">Specific Droplet family pricing</div><h1>{esc(title)}</h1>'
-            f'<p class="lead">{esc(purpose)}. Each named configuration below has its own published USD amount.</p>'
-            '<section class="card"><h2>Standard configurations</h2>'+row_table(name,group)+'</section>'
-            '<section class="card"><h2>Selection criteria and source</h2>'
-            '<p>Compare the actual CPU entitlement, RAM, SSD and transfer figures. '
-            f'{esc(NOTES[name])}</p>'+evidence(group[0])+'</section>'
-            '<p><a href="/digitalocean-pricing/">All DigitalOcean price families</a></p>')
-    write(path+"/",f'{title} {group[0]["checked_at"][:7]} — USD Table',
-          f'{title} with {len(group)} official USD monthly configurations and full CPU, memory and SSD comparisons.',detail,group)
+   # This is the only subfamily with explicit >=100 search volume in the
+   # owner-supplied list: "digitalocean droplet pricing" = 590 US monthly.
+   family="Basic"
+   selection=groups.get(family,[])
+   if len(selection)>=3:
+    title,path,purpose=FAMILIES[family]
+    detail=(f'<div class="eyebrow">DigitalOcean shared CPU Droplets</div><h1>{esc(title)}</h1>'
+            f'<p class="lead">{esc(purpose)}. These are regular USD rates for separately '
+            'identified configurations, not discounts or interchangeable performance tiers.</p>'
+            '<section class="card"><h2>Basic Droplet standard configurations</h2>'
+            +row_table(name,selection,links=False)+'</section>'
+            f'<section class="card"><h2>Resource tradeoffs and published billing</h2>'
+            f'<p>{esc(NOTES[name])}. Compare RAM, CPUs, SSD and included transfer by row.</p>'
+            +evidence(selection[0])+'</section>'
+            '<p><a href="/digitalocean-pricing/">View all DigitalOcean pricing classes</a></p>')
+    write(path+"/",f'{title} — Official USD Monthly Rates',
+          f'Official DigitalOcean Basic Droplet USD monthly prices, CPU, RAM, SSD and source for {len(selection)} named sizes.',detail,selection)
+   for other,(title,path,purpose) in FAMILIES.items():
+    if other != "Basic":
+     redirects.append(f"/{path}/ /digitalocean-pricing/ 301")
  for left,right in (("DigitalOcean","OVHcloud"),("DigitalOcean","BuyVM"),("OVHcloud","BuyVM")):
   if left not in ready or right not in ready:continue
   a,b=ready[left][:4],ready[right][:4]

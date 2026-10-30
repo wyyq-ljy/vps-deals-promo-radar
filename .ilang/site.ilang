@@ -1,0 +1,13 @@
+::ILANG
+[TYPE:config][PROJECT:vps-deals][LANG:zh]
+::STATE{@SITE, brand:vps-deals, niche:VPS hosting offers, domain:, base_url:, locale:en-US, currency:USD, frequency_hours:6}
+::MODULE{PROVIDERS|title:官方提供商和抓取来源}
+DigitalOcean | https://www.digitalocean.com | https://www.digitalocean.com/solutions/vps-hosting |
+Hetzner | https://www.hetzner.com | https://www.hetzner.com/cloud/ |
+Vultr | https://www.vultr.com | https://www.vultr.com/pricing/ |
+Linode | https://www.linode.com | https://www.linode.com/pricing/ |
+::MODULE{FIELDS|title:可验证字段}
+title price currency offer_url valid_until source_url fetched_at
+::RULE{无验证价格的条目不产生价格型优惠卡片}
+::RULE{不把常规公开标价称为限时促销}
+::BOUNDARY{never:编优惠 编价格 编截止日期 编佣金|scope:permanent}

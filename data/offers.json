@@ -1,0 +1,42 @@
+{
+  "offers": [],
+  "providers": [
+    {
+      "name": "DigitalOcean",
+      "website": "https://www.digitalocean.com",
+      "source_url": "https://www.digitalocean.com/solutions/vps-hosting",
+      "affiliate_url": "",
+      "status": "source_reachable",
+      "page_title": "VPS Hosting Plans - Starting at $4/mo | DigitalOcean"
+    },
+    {
+      "name": "Hetzner",
+      "website": "https://www.hetzner.com",
+      "source_url": "https://www.hetzner.com/cloud/",
+      "affiliate_url": "",
+      "status": "source_reachable",
+      "page_title": "Cloud-hosting provider for developers & teams"
+    },
+    {
+      "name": "Vultr",
+      "website": "https://www.vultr.com",
+      "source_url": "https://www.vultr.com/pricing/",
+      "affiliate_url": "",
+      "status": "robots_blocked",
+      "page_title": ""
+    },
+    {
+      "name": "Linode",
+      "website": "https://www.linode.com",
+      "source_url": "https://www.linode.com/pricing/",
+      "affiliate_url": "",
+      "status": "robots_blocked",
+      "page_title": ""
+    }
+  ],
+  "warnings": [
+    "Vultr: robots.txt unavailable or disallows fetch",
+    "Linode: robots.txt unavailable or disallows fetch"
+  ],
+  "generated_at": "2026-10-30T06:15:12+00:00"
+}

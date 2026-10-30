@@ -1,6 +1,6 @@
 # VPS Deals — Official Pricing Radar
 
-Independent, source-linked directory with **one deal page per verified VPS plan**. A deal here means a plan price listing—not a coupon or necessarily a discount. DigitalOcean Basic Regular Droplets are parsed from the official pricing table; Hetzner CPX/CCX models are parsed from Hetzner's public pricing JSON for HEL1 in USD. If a specific plan lacks a valid monthly price it is skipped. Prices include source URL, machine configuration, verification time and important billing conditions. Verify checkout prices, taxes, regional availability and extra IP charges with the provider.
+A **VPS deal** is published **only when the provider shows a regular price and a lower promotional price for the same plan on the same official page**, together with clear offer terms. List prices, free signup credits, coupon speculation and marketing headlines without comparable per-plan prices do not become deals. Hostinger and IONOS are monitored for explicit price reductions; DigitalOcean and Hetzner are monitored but show no deals unless an official matched discount source is added. Vultr and Linode have been replaced after their earlier official pricing pages were unavailable for compliant automated checks. One deal page is generated per verified discount; when no deals qualify, the sitemap includes only the homepage, four provider pages, and comparison page.
 
 ## Quick start
 
@@ -18,7 +18,7 @@ Use **Connect to Git** (production branch `main`), build command `python build.p
 
 ## Update automation
 
-`.github/workflows/update.yml` runs every six hours, checks official sources, builds and tests, then commits updated verified data. If *all* source prices fail, `scraper.py` raises an error **without overwriting the last verified data**; GitHub Actions reports a failed run, instead of deleting every deal. If just one source fails, its unverifiable plans are omitted from that successful refresh. A past verified price is not a guarantee of current availability; each deal shows its verification timestamp. Scheduled GitHub Actions runs may be delayed or disabled after prolonged inactivity; monitor failures.
+`.github/workflows/update.yml` runs every six hours, checks official sources, builds and tests, then commits updated verified data. A refresh with zero qualifying discounts is **valid**: it replaces stale deals with an empty list. An inaccessible provider cannot retain old deals, and standard list prices are always excluded. A deal carries the source URL, last verification timestamp, original and introductory price, savings amount, commitment and renewal note. GitHub Actions reports failures separately if the code crashes; schedule delays are possible. Scheduled GitHub Actions runs may be delayed or disabled after prolonged inactivity; monitor failures.
 
 ## Compliance & monetization
 

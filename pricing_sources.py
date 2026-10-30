@@ -1,174 +1,156 @@
-"""Provider-specific parsers for official, publicly visible monthly VPS list prices.
+"""Only publish live, same-official-page old-price vs promotional-price differences.
 
-No price defaults, estimates, third-party mirrors, or coupon claims.
-Every returned row ties a named server configuration to a price on an
-explicit, robot-permitted first-party source.
+Marketing-only claims, signup credits, standard list prices, missing
+billing terms, and unverifiable price displays do not become deals.
 """
-import json
-import re
 from decimal import Decimal, InvalidOperation
+from html import unescape
 from html.parser import HTMLParser
+import re
 
-DO_PRICING = "https://www.digitalocean.com/pricing/droplets"
-HETZNER_FEED = "https://www.hetzner.com/_resources/app/data/bench/cloud_data.json"
-HETZNER_REGION = "HEL1"  # one pinned region; do not mix regions in one price
-_HETZNER_GROUPS = ("Shared - Regular Performance", "Dedicated - General Purpose")
+HOSTINGER_URL = "https://www.hostinger.com/vps-hosting"
+IONOS_URL = "https://www.ionos.com/servers/vps.html"
 
-
-def dollars(value):
-    """Return a valid USD monthly amount, otherwise reject the row."""
-    if not isinstance(value, str) or not re.fullmatch(r"\$?(?:\d{1,3}(?:,\d{3})*|\d+)\.\d{2}", value.strip()):
+def money(value):
+    if not isinstance(value, str) or not re.fullmatch(r"\$?\d{1,5}(?:\.\d{1,2})?", value.strip()):
         return None
     try:
-        amount = Decimal(value.strip().replace("$", "").replace(",", ""))
+        amount = Decimal(value.strip().lstrip("$"))
     except InvalidOperation:
         return None
-    return f"{amount:.2f}" if Decimal("0") < amount < Decimal("10000") else None
+    return amount if Decimal("0") < amount < Decimal("100000") else None
 
+def formatted(value):
+    return f"{value:.2f}"
 
-def identifier(value):
-    return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", value.lower())).strip("-")
+def discount(regular_text, promo_text):
+    regular, promo = money(regular_text), money(promo_text)
+    if regular is None or promo is None or promo >= regular:
+        return None
+    saving = regular - promo
+    return regular, promo, saving, int((saving / regular * 100).quantize(Decimal("1")))
 
+def first(pattern, text, flags=re.S | re.I):
+    found = re.search(pattern, text, flags)
+    return found.group(1) if found else None
 
-class SimplePricingTables(HTMLParser):
-    """Extract table cell text after heading; script/style content is excluded."""
+class Text(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.heading = ""
-        self._heading_parts = None
-        self._table = None
-        self._row = None
-        self._cell = None
-        self._ignore = 0
-        self.tables = []
-
+        self.pieces = []
+        self.ignore = 0
     def handle_starttag(self, tag, attrs):
-        if tag in ("script", "style"):
-            self._ignore += 1
-            return
-        if self._ignore:
-            return
-        if tag == "h3":
-            self._heading_parts = []
-        if tag == "table":
-            self._table = []
-        if tag == "tr" and self._table is not None:
-            self._row = []
-        if tag in ("td", "th") and self._row is not None:
-            self._cell = []
-
-    def handle_data(self, data):
-        if self._ignore:
-            return
-        if self._heading_parts is not None:
-            self._heading_parts.append(data)
-        if self._cell is not None:
-            self._cell.append(data)
-
+        if tag in ("script","style"):
+            self.ignore += 1
     def handle_endtag(self, tag):
-        if tag in ("script", "style"):
-            self._ignore = max(0, self._ignore - 1)
-            return
-        if self._ignore:
-            return
-        if tag == "h3" and self._heading_parts is not None:
-            self.heading = " ".join("".join(self._heading_parts).split())
-            self._heading_parts = None
-        if tag in ("td", "th") and self._cell is not None:
-            self._row.append(" ".join("".join(self._cell).split()))
-            self._cell = None
-        if tag == "tr" and self._row is not None and self._table is not None:
-            self._table.append(self._row)
-            self._row = None
-        if tag == "table" and self._table is not None:
-            self.tables.append((self.heading, self._table))
-            self._table = None
+        if tag in ("script","style"):
+            self.ignore = max(0, self.ignore-1)
+    def handle_data(self, data):
+        if not self.ignore:
+            self.pieces.append(data)
+def plain(html):
+    p = Text()
+    p.feed(html)
+    return " ".join(" ".join(p.pieces).split())
 
-
-def parse_digitalocean(html_text, verified_at):
-    """Basic / Regular CPU only; never mix premium tabs or other tables."""
-    parser = SimplePricingTables()
-    parser.feed(html_text)
-    offers = []
-    for heading, rows in parser.tables:
-        if heading != "Basic Droplets" or not rows:
+def parse_hostinger(html, checked):
+    # Each price must be inside the SAME identifiable KVM pricing card,
+    # with a crossed original and an advertised monthly current price.
+    markers = list(re.finditer(
+        r'<div class="h-pricing-card__title[^"]*"[^>]*>[\s\S]{0,200}?KVM\s+([1248])\b',
+        html, re.I
+    ))
+    result = []
+    names = set()
+    for i, hit in enumerate(markers):
+        model = "KVM " + hit.group(1)
+        if model in names:
             continue
-        if rows[0] != ["Memory", "vCPU", "Transfer", "SSD", "$/hr", "$/mo"]:
-            continue  # reject page redesign rather than guessing column positions
-        for row in rows[1:]:
-            if len(row) != 6:
-                continue
-            memory, cpu, transfer, disk, hourly, monthly = row
-            if not (re.fullmatch(r"\d+ (?:MiB|GiB)", memory) and
-                    re.fullmatch(r"\d+ vCPUs?", cpu) and
-                    re.fullmatch(r"[\d,]+ GiB", transfer) and
-                    re.fullmatch(r"[\d,]+ GiB", disk) and
-                    re.fullmatch(r"\$0\.\d{5}", hourly)):
-                continue
-            price = dollars(monthly)
-            if not price:
-                continue
-            label = f"Basic Regular - {memory} RAM / {cpu} / {disk} SSD"
-            offers.append({
-                "id": "digitalocean-" + identifier(label),
-                "provider": "DigitalOcean",
-                "plan": label,
-                "monthly_usd": price,
-                "currency": "USD",
-                "period": "month",
-                "price_type": "standard_list_price",
-                "region": "Region selection at checkout",
-                "vcpus": int(cpu.split()[0]),
-                "memory": memory,
-                "disk": disk,
-                "transfer": transfer,
-                "source_url": DO_PRICING,
-                "offer_url": DO_PRICING,
-                "verified_at": verified_at,
-                "pricing_note": "Published Basic Regular monthly cap; usage-based billing, taxes and extras may apply. Not a promotional discount.",
-            })
-        if offers:
-            break
-    return offers
-
-
-def parse_hetzner(json_text, verified_at):
-    """Only HEL1 USD net monthly amounts in Hetzner's published pricing feed."""
-    try:
-        data = json.loads(json_text)
-        matrix = data["Matrix"]
-    except (ValueError, KeyError, TypeError):
-        return []
-    if not isinstance(matrix, dict):
-        return []
-    offers = []
-    for group in _HETZNER_GROUPS:
-        plans = matrix.get(group)
-        if not isinstance(plans, dict):
+        end = min(len(html), hit.end() + 30000,
+                  markers[i+1].start() if i+1 < len(markers) else len(html))
+        section = html[hit.end():end]
+        regular = first(r'h-pricing-card__old-price[\s\S]{0,550}?hw-price__value[^>]*>(\d+\.\d{2})<', section)
+        promo = first(r'h-pricing-card__current-price[\s\S]{0,550}?hw-price__value[^>]*>(\d+\.\d{2})<', section)
+        terms = re.search(
+            r'Today you pay \$(\d+\.\d{2}) for (\d+) months\.\s*Renews at \$(\d+\.\d{2})/mo',
+            plain(section), re.I,
+        )
+        differential = discount(regular, promo)
+        if not differential or not terms:
             continue
-        for plan_name, details in sorted(plans.items()):
-            if not re.fullmatch(r"(?:CPX|CCX)\d{2}", plan_name) or not isinstance(details, dict):
-                continue
-            location = details.get("locations", {}).get(HETZNER_REGION, {})
-            usd = location.get("USD", {}) if isinstance(location, dict) else {}
-            price = dollars(usd.get("price")) if isinstance(usd, dict) else None
-            cores = details.get("cores")
-            if not price or type(cores) is not int or not 1 <= cores <= 64:
-                continue
-            label = f"{plan_name} - {cores} vCPU ({'shared' if plan_name.startswith('CPX') else 'dedicated'})"
-            offers.append({
-                "id": "hetzner-" + identifier(plan_name) + "-hel1",
-                "provider": "Hetzner",
-                "plan": label,
-                "monthly_usd": price,
-                "currency": "USD",
-                "period": "month",
-                "price_type": "standard_list_price",
-                "region": "Helsinki, Finland (HEL1)",
-                "vcpus": cores,
-                "source_url": HETZNER_FEED,
-                "offer_url": "https://www.hetzner.com/cloud/",
-                "verified_at": verified_at,
-                "pricing_note": "Published USD monthly net price for HEL1; excludes VAT and primary IPv4. Availability and additional charges must be checked. Not a promotional discount.",
-            })
+        old, new, saved, percent = differential
+        upfront, months, renewal = money(terms.group(1)), int(terms.group(2)), money(terms.group(3))
+        if months < 1 or months > 48 or upfront is None or renewal is None:
+            continue
+        if abs(upfront - new * months) > Decimal("0.05"):
+            continue
+        text = plain(section)
+        cpu = first(r'(\d+\s+vCPU core)', text)
+        ram = first(r'(\d+\s+GB RAM)', text)
+        disk = first(r'(\d+\s+GB NVMe disk space)', text)
+        bandwidth = first(r'(\d+\s+TB bandwidth)', text)
+        if not all((cpu, ram, disk, bandwidth)):
+            continue
+        names.add(model)
+        result.append({
+            "id": "hostinger-" + model.lower().replace(" ", "-"),
+            "provider": "Hostinger", "plan": model, "price_type": "verified_discount",
+            "regular_monthly_usd": formatted(old), "promo_monthly_usd": formatted(new),
+            "savings_monthly_usd": formatted(saved), "discount_percent": percent,
+            "currency": "USD", "promo_months": months, "upfront_usd": formatted(upfront),
+            "renewal_monthly_usd": formatted(renewal), "contract_note": f"Prepaid {months}-month introductory term",
+            "vcpus": cpu, "memory": ram, "disk": disk, "transfer": bandwidth,
+            "region": "Select at checkout", "source_url": HOSTINGER_URL,
+            "offer_url": HOSTINGER_URL, "verified_at": checked,
+            "pricing_note": "Discounted price is an effective monthly rate billed in full upfront. Renewal rate is higher; taxes and region availability may vary.",
+        })
+    return result
+
+def parse_ionos(html, checked):
+    # Explicit old and current price, with official 'Save $X' validated
+    # against the first-three-month difference and an annual commitment.
+    markers = list(re.finditer(r'<h3[^>]*>VPS\s+(S|M|L|XL|XXL)\+</h3>', html, re.I))
+    offers, names = [], set()
+    for i, hit in enumerate(markers):
+        model = "VPS " + hit.group(1).upper() + "+"
+        if model in names:
+            continue
+        end = min(len(html), hit.end() + 7000,
+                  markers[i+1].start() if i+1 < len(markers) else len(html))
+        section = html[hit.end():end]
+        boxed = first(r'(<div class="price-box[^"]*"[\s\S]{0,1800}?</div></div></div>)', section)
+        if not boxed:
+            boxed = section[:1600]
+        old = first(r'class="original-price"[^>]*>\$(\d+(?:\.\d{1,2})?)<', boxed)
+        current = first(r'class="price_value"[^>]*>(\d+(?:\.\d{1,2})?)<', boxed)
+        saving_mark = first(r'Save \$(\d+(?:\.\d{1,2})?)', boxed)
+        duration = first(r'for\s+(\d+)\s+months', boxed)
+        annual = "with a 1-year term" in boxed
+        differential = discount(old, current)
+        if not differential or not saving_mark or not duration or not annual:
+            continue
+        base, promo, saved, percentage = differential
+        months = int(duration)
+        saved_total = money(saving_mark)
+        if months != 3 or saved_total is None or saved_total != saved * months:
+            continue
+        text = plain(section)
+        cpu = first(r'(\d+\s+vCores?)\s+CPU', text)
+        ram = first(r'(\d+\s+GB)\s+RAM', text)
+        disk = first(r'(\d+\s+GB)\s+NVMe', text)
+        if not all((cpu, ram, disk)):
+            continue
+        names.add(model)
+        offers.append({
+            "id": "ionos-" + model.lower().replace(" ", "-").replace("+", "-plus"),
+            "provider": "IONOS", "plan": model, "price_type": "verified_discount",
+            "regular_monthly_usd": formatted(base), "promo_monthly_usd": formatted(promo),
+            "savings_monthly_usd": formatted(saved), "discount_percent": percentage,
+            "currency": "USD", "promo_months": months, "upfront_usd": "",
+            "renewal_monthly_usd": "", "contract_note": "Introductory rate for first 3 months with a 1-year term",
+            "vcpus": cpu, "memory": ram + " RAM", "disk": disk + " NVMe", "transfer": "Unlimited traffic (subject to provider terms)",
+            "region": "Select at checkout", "source_url": IONOS_URL,
+            "offer_url": IONOS_URL, "verified_at": checked,
+            "pricing_note": "Advertised 3-month introductory rate with 1-year commitment. Subsequent monthly charge, any fees and taxes must be confirmed at checkout. Do not treat the introductory rate as the full-year rate.",
+        })
     return offers

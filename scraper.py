@@ -1,153 +1,101 @@
-# ::ILANG [TYPE:python-module][ROLE:official-price-collector]
-# ::RULE{only:verified named plans from public first-party source, respect robots}
-# ::BOUNDARY{never:guess prices, manufacture discounts, persist an empty full refresh}
-"""Collect current price-listed plans from DigitalOcean and Hetzner."""
+"""First-party source monitor: only proven same-page price reductions are deals."""
 import datetime as dt
 import json
 import os
 from html.parser import HTMLParser
-from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 from urllib.robotparser import RobotFileParser
-
 from config import ROOT, load_config
-from pricing_sources import DO_PRICING, HETZNER_FEED, parse_digitalocean, parse_hetzner
+from pricing_sources import parse_hostinger, parse_ionos
 
 USER_AGENT = "VPSPricingRadar/1.0 (+public pricing directory)"
 OUTPUT = ROOT / "data/offers.json"
-MAX_BYTES = 2_000_000
 
-
-class TitleParser(HTMLParser):
+class Title(HTMLParser):
     def __init__(self):
         super().__init__()
-        self.inside = False
-        self.parts = []
-
+        self.active = False
+        self.text = []
     def handle_starttag(self, tag, attrs):
-        if tag == "title":
-            self.inside = True
-
+        if tag == "title": self.active = True
     def handle_endtag(self, tag):
-        if tag == "title":
-            self.inside = False
-
+        if tag == "title": self.active = False
     def handle_data(self, data):
-        if self.inside:
-            self.parts.append(data)
-
+        if self.active: self.text.append(data)
 
 def robots_permit(url):
-    parsed = urlparse(url)
-    if parsed.scheme != "https" or not parsed.netloc:
-        return False
-    robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
-    parser = RobotFileParser()
+    address = urlparse(url)
+    if address.scheme != "https" or not address.hostname: return False
     try:
-        with urlopen(Request(robots_url, headers={"User-Agent": USER_AGENT}), timeout=10) as response:
-            text = response.read(512_000).decode("utf-8", "replace")
-        parser.parse(text.splitlines())
-        return parser.can_fetch(USER_AGENT, url)
+        response = urlopen(Request(f"{address.scheme}://{address.netloc}/robots.txt",
+                                   headers={"User-Agent": USER_AGENT}), timeout=10)
+        with response:
+            data = response.read(512001)
+        if len(data) > 512000: return False
+        rules = RobotFileParser()
+        rules.parse(data.decode("utf-8", "replace").splitlines())
+        return rules.can_fetch(USER_AGENT, url)
     except Exception:
         return False
 
-
 def read_official(url):
     if not robots_permit(url):
-        raise PermissionError("robots.txt unavailable or disallows requested source")
-    with urlopen(
-        Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/json"}),
-        timeout=20,
-    ) as response:
-        target = urlparse(response.url)
-        expected = urlparse(url)
-        if target.scheme != "https" or target.hostname != expected.hostname:
-            raise ValueError("unexpected cross-origin redirect")
-        raw = response.read(MAX_BYTES + 1)
-        if len(raw) > MAX_BYTES:
-            raise ValueError("source exceeds size limit")
-        return raw.decode("utf-8", "replace")
-
+        raise PermissionError("robots.txt inaccessible or disallows URL")
+    with urlopen(Request(url, headers={
+            "User-Agent": USER_AGENT,
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html"}), timeout=22) as response:
+        source, target = urlparse(url), urlparse(response.url)
+        if target.scheme != "https" or source.hostname != target.hostname:
+            raise ValueError("unapproved cross-origin redirect")
+        raw = response.read(2000001)
+    if len(raw) > 2000000:
+        raise ValueError("source exceeds 2 MB")
+    return raw.decode("utf-8", "replace")
 
 def collect():
     _, providers = load_config()
-    previous = {}
-    if OUTPUT.exists():
-        try:
-            previous = json.loads(OUTPUT.read_text(encoding="utf-8"))
-        except (ValueError, OSError):
-            previous = {}
-
     now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
-    warnings = []
-    provider_rows = []
-    offers = []
+    result = {"offers": [], "providers": [], "warnings": []}
+    parsers = {"Hostinger": parse_hostinger, "IONOS": parse_ionos}
     seen = set()
     for entry in providers:
         row = dict(entry)
-        row["status"] = "not_checked"
-        row["page_title"] = ""
-        row["verified_plan_count"] = 0
-        name = entry["name"]
-        source_url = entry["source_url"]
+        row.update(status="not_checked", page_title="", verified_deal_count=0)
         try:
-            html = read_official(source_url)
-            if html.lstrip().startswith("{"):
-                raise ValueError("provider landing source is not HTML")
-            title = TitleParser()
-            title.feed(html)
-            row["page_title"] = " ".join("".join(title.parts).split())[:180]
-            row["status"] = "source_reachable"
-            if name == "DigitalOcean":
-                # Keep the link config as a source of truth; do not parse marketing
-                # promises such as "from $4" without a matching plan row.
-                raw_offers = parse_digitalocean(html if source_url == DO_PRICING else read_official(DO_PRICING), now)
-            elif name == "Hetzner":
-                raw_offers = parse_hetzner(read_official(HETZNER_FEED), now)
-            else:
-                raw_offers = []
-            for item in raw_offers:
-                if item["id"] not in seen:
-                    seen.add(item["id"])
-                    offers.append(item)
-                    row["verified_plan_count"] += 1
-            if name in ("DigitalOcean", "Hetzner"):
-                if not raw_offers:
-                    row["status"] = "no_verified_prices"
-                    warnings.append(f"{name}: no plan/price pairs validated in official pricing feed")
-                else:
-                    row["status"] = "prices_verified"
+            source_html = read_official(entry["source_url"])
+            title = Title()
+            title.feed(source_html)
+            row["page_title"] = " ".join("".join(title.text).split())[:180]
+            parse = parsers.get(entry["name"])
+            for offer in (parse(source_html, now) if parse else []):
+                if offer["id"] not in seen:
+                    seen.add(offer["id"])
+                    result["offers"].append(offer)
+                    row["verified_deal_count"] += 1
+            row["status"] = "verified_discounts" if row["verified_deal_count"] else "no_verified_discount"
         except Exception as exc:
-            row["status"] = "robots_blocked" if isinstance(exc, PermissionError) else "fetch_or_parse_failed"
-            warnings.append(f"{name}: {type(exc).__name__} - {str(exc)[:110]}")
-        provider_rows.append(row)
-
-    # An empty refresh is an operational failure, NOT an instruction to
-    # wipe all historical deals from GitHub/Cloudflare. The workflow fails
-    # loudly and leaves the last successful data untouched.
-    if not offers:
-        raise RuntimeError("Zero verified plan prices. Refusing to overwrite prior dataset.")
-
-    offers.sort(key=lambda item: (item["provider"], float(item["monthly_usd"]), item["id"]))
-    result = {
-        "offers": offers,
-        "providers": provider_rows,
-        "warnings": warnings,
-        "generated_at": now,
-    }
-    # Only replace after all provider attempts are complete and at least one
-    # official named-plan/current-price pair was verified in this execution.
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    temp = OUTPUT.with_suffix(".json.tmp")
-    temp.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    os.replace(temp, OUTPUT)
+            row["status"] = "robots_blocked" if isinstance(exc, PermissionError) else "fetch_failed"
+            result["warnings"].append(f'{entry["name"]}: {type(exc).__name__} - {str(exc)[:110]}')
+        result["providers"].append(row)
+    # Zero verified deals is a valid outcome. In particular, never preserve
+    # old "standard_list_price" rows as live deals.
+    result["offers"].sort(key=lambda x: (x["provider"], x["plan"]))
+    result["generated_at"] = now
+    previous = {}
+    if OUTPUT.exists():
+        try: previous = json.loads(OUTPUT.read_text("utf-8"))
+        except (OSError, ValueError): pass
+    if any(previous.get(k) != result[k] for k in ("offers", "providers", "warnings")):
+        OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+        staging = OUTPUT.with_suffix(".json.tmp")
+        staging.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        os.replace(staging, OUTPUT)
     return result
 
-
 if __name__ == "__main__":
-    data = collect()
-    counts = {p["name"]: p["verified_plan_count"] for p in data["providers"]}
-    print("Verified plan counts:", counts)
-    print("Total deals:", len(data["offers"]))
-    print("Warnings:", "; ".join(data["warnings"]) or "none")
+    result = collect()
+    print("Verified discounts", len(result["offers"]))
+    print("By provider", [(p["name"], p["status"], p["verified_deal_count"]) for p in result["providers"]])
+    print("Warnings", result["warnings"])

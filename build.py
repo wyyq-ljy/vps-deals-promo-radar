@@ -188,7 +188,16 @@ def build():
         f'providers/{slug(p["name"])}/' for p in configured
         if f'providers/{slug(p["name"])}/' not in supported
     ]
-    redirect_lines.extend(f'/{route} /compare/ 301' for route in absent)
+    redirect_lines.extend(f'/{route} /compare/ 301' for route in absent)    # Previously published promotions may later fail official verification.
+    # Withdraw their old URLs without blocking a legitimately re-verified deal.
+    withdrawn = json.loads((ROOT/'data/retired_deals.json').read_text('utf-8')).get('withdrawn_deal_ids', [])
+    current_ids = {offer['id'] for offer in verified}
+    for identifier in withdrawn:
+        if slug(identifier) != identifier:
+            raise ValueError('Invalid withdrawn deal slug')
+        if identifier not in current_ids:
+            redirect_lines.append(f'/deals/{identifier}/ /compare/ 301')
+
     save('_redirects', '# Retired ordinary-price deals and unsupported provider shells\n'
          + '\n'.join(redirect_lines) + '\n')
     # Cloudflare and GitHub jobs only: generated HTML files can safely be

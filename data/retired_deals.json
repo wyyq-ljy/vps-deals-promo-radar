@@ -80,5 +80,11 @@
       "id": "hetzner-ccx63-hel1",
       "provider": "Hetzner"
     }
+  ],
+  "withdrawn_deal_ids": [
+    "dreamhost-stack-4",
+    "dreamhost-stack-8",
+    "dreamhost-stack-16",
+    "dreamhost-stack-32"
   ]
 }

@@ -128,7 +128,10 @@ class TestDeals(unittest.TestCase):
         entries=[line for line in rules.splitlines() if line and not line.startswith('#')]
         data=json.loads((ROOT/'data/offers.json').read_text('utf-8'))
         indexed=sum(1 for v in data['providers'] if v.get('verified_deal_count',0) or len(v.get('list_prices',[]))>=3)
-        self.assertEqual(len(entries),20+len(load_config()[1])-indexed)
+        history=json.loads((ROOT/'data/retired_deals.json').read_text('utf-8'))
+        offer_ids={x['id'] for x in data['offers']}
+        withdrawn=sum(x not in offer_ids for x in history.get('withdrawn_deal_ids',[]))
+        self.assertEqual(len(entries),20+len(load_config()[1])-indexed+withdrawn)
         self.assertIn('/deals/hetzner-cpx22-hel1/ /compare/ 301',rules)
         self.assertIn('/deals/digitalocean-basic-regular-512-mib-ram-1-vcpu-10-gib-ssd/ /providers/digitalocean/ 301',rules)
         self.assertIn('noindex',(site_builder.OUT/'404.html').read_text(encoding='utf-8'))

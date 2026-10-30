@@ -59,7 +59,7 @@ def build():
     affiliate_links = {p['name']:p['affiliate_url'] for p in configured if p.get('affiliate_url')}
     deal_routes, by_provider, deal_markup = build_deals(
         verified, page, save, name, base if host_ok else '', affiliate_links)
-    pricing_routes, pricing_redirects, pricing_changes, pricing_cards = build_pricing(data,save,page)
+    pricing_routes, pricing_redirects, pricing_changes, pricing_cards = build_pricing(data,save,page,base if host_ok else '')
     cards=[]
     item_list=[]
     for index, p in enumerate(configured, 1):

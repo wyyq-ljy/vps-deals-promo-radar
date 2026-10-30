@@ -6,6 +6,7 @@ import html
 import re
 from collections import defaultdict
 from decimal import Decimal
+from seo_helpers import breadcrumbs
 
 FAMILIES = {
  "Basic":("DigitalOcean Droplet Pricing","digitalocean-droplet-pricing","Shared CPU for bursty apps, websites, and development"),
@@ -48,11 +49,13 @@ def rows_of(provider):
   except Exception:return []
   seen.add(x["model"])
  return sorted(rows,key=lambda r:Decimal(r["monthly_usd"]))
-def build_pricing(data,save,page):
+def build_pricing(data,save,page,base=''):
  ready={p["name"]:rows_of(p) for p in data.get("providers",[])}
  ready={k:v for k,v in ready.items() if v}
  routes=[];redirects=[];changes={};cards={}
  def write(route,title,description,body,rows):
+  if base:
+   body+=breadcrumbs(base, [('Home',''),('Pricing',route)])
   routes.append(route);save(route+"index.html",page(title,description,body,route))
   dates=[r.get("last_changed_at") or r.get("checked_at") for r in rows]
   if dates:changes["/"+route]=max(dates)
@@ -74,6 +77,14 @@ def build_pricing(data,save,page):
     if fam in FAMILIES:
      title,route,purpose=FAMILIES[fam]
      text+=f'<p><a href="/{route}/">{esc(title)}</a>: {esc(purpose)}; {len(group)} listed configurations.</p>'
+   text+='</section>'
+  pairs=(("DigitalOcean","OVHcloud"),("DigitalOcean","BuyVM"),("OVHcloud","BuyVM"))
+  comparison_links=[(left,right) for left,right in pairs if name in (left,right) and left in ready and right in ready]
+  if comparison_links:
+   text+='<section class="card"><h2>Compare published prices across providers</h2>'
+   for left,right in comparison_links:
+    path=f'{slug(left)}-vs-{slug(right)}-pricing/'
+    text+=f'<p><a href="/{path}">{esc(left)} vs {esc(right)} pricing</a>: CPU, RAM, SSD and USD monthly rate comparison.</p>'
    text+='</section>'
   text+=(f'<section class="card"><h2>How billing works</h2><p>{esc(NOTES[name])}</p>'
          f'{evidence(items[0])}</section>')

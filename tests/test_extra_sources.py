@@ -45,7 +45,7 @@ class AdditionalProviderTests(unittest.TestCase):
     def test_provider_slug_hyphens_and_config_count(self):
         _, providers = load_config()
         self.assertEqual(provider_slug("InMotion Hosting"), "inmotion-hosting")
-        self.assertEqual(len(providers), 26)
+        self.assertEqual(len(providers), 28)
         self.assertEqual(len({p["source_url"] for p in providers}), len(providers))
         self.assertEqual(len({p["name"] for p in providers}), len(providers))
 

@@ -27,24 +27,40 @@ NOTES = {
  "Kamatera":"Published recommended configurations; customize server and add-ons at checkout for a different total.",
  "Hostwinds":"Unmanaged Linux VPS standard USD monthly rates; confirm term, taxes and software extras.",
  "HostArmada":"Promotional USD per-month equivalent on the selected 12-month term; renewal pricing can change.",
+ "Linode":"Official Akamai/Linode Shared CPU standard hourly usage rates with published USD monthly amounts; not a promotional campaign.",
+ "Vultr":"Official Vultr Cloud Compute Regular Performance standard USD hourly rates and monthly listed amounts; the USD 2.50 plan is IPv6 only.",
+ "Netcup":"Official Netcup VPS G12.5 EUR rates for a 12-month term, with crossed-out reference EUR rates. Comparison rate is not independently verified as renewal.",
  "UpCloud":"Global USD Starter and Premium server rates, hourly metering with monthly cap, zero-cost egress subject to fair use.",
 }
 def esc(x):return html.escape(str(x or ""),quote=True)
 def slug(x):return re.sub("-+","-",re.sub("[^a-z0-9]+","-",x.lower())).strip("-")
-def price(x):return "$"+esc(x["monthly_usd"])+" USD / month"
+def price(x):
+ currency=x["currency"]
+ if currency not in ("USD","EUR"):raise ValueError("Unsupported quote currency")
+ return ("€" if currency=="EUR" else "$")+esc(x["monthly_usd"])+" "+currency+" / month"
 def model_route(name,x):return slug(name)+"-"+slug(x["model"])+"-cost/"
 def row_table(name,items,links=False):
- head='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th>Model</th><th>Monthly USD</th><th>CPU</th><th>RAM</th><th>SSD</th><th>Transfer</th></tr></thead><tbody>'
+ currencies={x["currency"] for x in items}
+ if len(currencies)!=1:raise ValueError("Mixed USD/EUR pricing in one table")
+ currency=next(iter(currencies))
+ manual=name in ("Linode","Vultr","Netcup")
+ extra='<th>Official comparison ('+currency+'/mo)</th><th>Renewal ('+currency+'/mo)</th>' if manual else ''
+ head='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th>Model</th><th>Monthly '+currency+'</th><th>CPU</th><th>RAM</th><th>SSD</th><th>Transfer</th>'+extra+'</tr></thead><tbody>'
  body=''
  for x in items:
   m=esc(x["model"])
   if links:m=f'<a href="/{model_route(name,x)}">{m}</a>'
   vals=[m,price(x),esc(x["cpu"]),esc(x["memory"]),esc(x["storage"]),esc(x.get("transfer") or "See source")]
+  if manual:
+   reference=x.get('reference_monthly','-')
+   renewal=x.get('renewal_monthly','-')
+   vals.extend([('€'+esc(reference)+' EUR (not renewal)' if currency=='EUR' and reference!='-' else 'No introductory promotion'),
+                (('€' if currency=='EUR' else '$')+esc(renewal)+' '+currency+'/mo' if renewal!='-' else 'Not separately published')])
   body+='<tr>'+''.join(f'<td style="padding:10px;border-bottom:1px solid #e2e5e9">{v}</td>' for v in vals)+'</tr>'
  return head+body+'</tbody></table></div>'
 def evidence(x):
  return (f'<p><strong>Source:</strong> <a href="{esc(x["source_url"])}" rel="noopener noreferrer" target="_blank">{esc(x["source_url"])}</a></p>'
-         f'<p><strong>Verified UTC:</strong> {esc(x["checked_at"])}</p>'
+         f'<p><strong>Verified UTC:</strong> {esc(x["checked_at"])} ({"owner-copied official table; not live bot revalidation" if x.get("evidence_kind")=="owner_manual_firstparty" else "direct first-party source check"})</p>'
          f'<p><strong>Billing:</strong> {esc(x["price_note"])}</p>')
 def rows_of(provider):
  rows=provider.get("list_prices") or []
@@ -52,11 +68,12 @@ def rows_of(provider):
  seen=set()
  for x in rows:
   if not isinstance(x,dict) or any(not x.get(k) for k in ("model","monthly_usd","currency","cpu","memory","storage","checked_at","source_url","price_note")):return []
-  if x["currency"]!="USD" or x["source_url"]!=provider.get("source_url") or x["model"] in seen:return []
+  if x["currency"] not in ("USD", "EUR") or x["source_url"]!=provider.get("source_url") or x["model"] in seen:return []
   try:
    if not 0<Decimal(x["monthly_usd"])<100000:return []
   except Exception:return []
   seen.add(x["model"])
+ if len({r['currency'] for r in rows}) != 1:return []
  return sorted(rows,key=lambda r:Decimal(r["monthly_usd"]))
 def build_pricing(data,save,page,base=''):
  ready={p["name"]:rows_of(p) for p in data.get("providers",[])}
@@ -71,13 +88,14 @@ def build_pricing(data,save,page,base=''):
  for name,items in ready.items():
   main=slug(name)+"-pricing/"
   redirects.append(f'/providers/{slug(name)}/ /{main} 301')
-  cards[name]=(f'<article class="card"><div class="eyebrow">Official USD monthly pricing</div>'
+  currency=items[0]['currency']
+  cards[name]=(f'<article class="card"><div class="eyebrow">Official {currency} monthly pricing</div>'
                f'<h2>{esc(name)}</h2><p>{len(items)} individually named and priced configurations.</p>'
                f'<div class="actions"><a href="/{main}">Compare published costs</a></div></article>')
   groups=defaultdict(list)
   for r in items:groups[r.get("family") or "Other"].append(r)
-  text=(f'<div class="eyebrow">Provider pricing</div><h1>{esc(name)} Pricing</h1>'
-        f'<p class="lead">{len(items)} official USD monthly prices, with CPU, RAM, SSD and transfer values taken from the named plan rows.</p>'
+  text=(f'<div class="eyebrow">Provider pricing — {currency}</div><h1>{esc(name)} Pricing ({currency})</h1>'
+        f'<p class="lead">{len(items)} first-party {currency} monthly prices, with CPU, RAM, storage and transfer values transcribed from the named plan rows. This table uses {currency} only.</p>'
         '<section class="card"><h2>All available published configurations</h2>'
         +row_table(name,items)+'</section>')
   if name=="DigitalOcean":
@@ -109,9 +127,9 @@ def build_pricing(data,save,page,base=''):
    details=''.join(f'<p>{esc(term)}</p>' for term in terms[:8])
    text+=(f'<section class="card"><h2>How billing works</h2><p>{esc(NOTES[name])}</p>'
           +details+f'{evidence(items[0])}</section>')
-   title=f'{name} Pricing 2026 — Official USD Monthly Costs'
+   title=f'{name} Pricing 2026 — Official {currency} Monthly Costs'
   write(main,title,
-        f'Official {name} pricing, RAM, CPU, storage and USD monthly costs across {len(items)} configurations.',text,items)
+        f'Official {name} pricing, RAM, CPU, storage and {currency} monthly costs across {len(items)} configurations.',text,items)
   # No individual configuration has a supplied >=100 US monthly search
   # volume. Consolidate every former /...-cost/ URL into its evidence-backed
   # vendor pricing overview (or verified Droplet pricing family).

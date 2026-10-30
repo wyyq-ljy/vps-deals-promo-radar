@@ -132,6 +132,8 @@ class TestDeals(unittest.TestCase):
         withdrawn=sum(x not in offer_ids for x in history.get('withdrawn_deal_ids',[]))
         price_vendors=sum(len(v.get('list_prices',[]))>=3 for v in data['providers'])
         merged_cost=sum(len(v.get('list_prices',[])) for v in data['providers'])
+        from manual_firstparty import read_manual
+        manual_cost=sum(len(rows) for rows in read_manual().values())
         # Deal-bearing vendors can also have verified pricing tables. The old
         # subtraction double-counted that overlap as unsupported vendors.
         supported={v['name'] for v in data['providers']
@@ -139,7 +141,7 @@ class TestDeals(unittest.TestCase):
         unsupported=len({p['name'] for p in load_config()[1]}-supported)
         dual_purpose=sum(bool(v.get('verified_deal_count')) and len(v.get('list_prices',[]))>=3
                          for v in data['providers'])
-        self.assertEqual(len(entries),20+unsupported+withdrawn+price_vendors+merged_cost+4-dual_purpose)
+        self.assertEqual(len(entries),20+unsupported+withdrawn+price_vendors+merged_cost+manual_cost+4-dual_purpose)
         self.assertIn('/deals/hetzner-cpx22-hel1/ /hetzner-pricing/ 301',rules)
         self.assertIn('/deals/digitalocean-basic-regular-512-mib-ram-1-vcpu-10-gib-ssd/ /digitalocean-pricing/ 301',rules)
         self.assertIn('noindex',(site_builder.OUT/'404.html').read_text(encoding='utf-8'))

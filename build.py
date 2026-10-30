@@ -14,6 +14,7 @@ from seo_helpers import breadcrumbs, itemlist, jsonld, sitemap_xml
 from social_card import create_png
 from public_copy import public_status
 from pricing_pages import build_pricing
+from manual_firstparty import with_manual_prices
 
 OUT = ROOT/'site'
 def e(value): return html.escape(str(value or ''), quote=True)
@@ -22,6 +23,9 @@ def slug(s): return ''.join(c.lower() if c.isalnum() else '-' for c in s).strip(
 def build():
     site, configured = load_config()
     data = json.loads((ROOT/'data/offers.json').read_text('utf-8'))
+    # Fresh owner-transcribed official tables supplement the automated feed.
+    # Blocked robots pages are NEVER fetched by this build.
+    data = with_manual_prices(data, configured)
     # Production builds start with a clean checkout (site/ is gitignored).
     # Avoid deleting files here: local desktops can forbid bulk file removal.
     OUT.mkdir(exist_ok=True)
@@ -76,9 +80,10 @@ def build():
             all(isinstance(x.get(k),str) and x[k] for k in (
                 "model","monthly_usd","currency","cpu","memory","storage",
                 "price_note","source_url","checked_at"
-            )) and x["source_url"] == official and x["currency"] == "USD"
+            )) and x["source_url"] == official and x["currency"] in ("USD", "EUR")
         ]
-        if len(valid_prices) < 3 or len({x["model"] for x in valid_prices}) != len(valid_prices):
+        if (len(valid_prices) < 3 or len({x["model"] for x in valid_prices}) != len(valid_prices)
+                or len({x["currency"] for x in valid_prices}) != 1):
             valid_prices = []
         if not plan_rows and not valid_prices:
             # No factual, index-worthy comparison exists. Do not generate a

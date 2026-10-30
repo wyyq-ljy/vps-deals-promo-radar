@@ -18,6 +18,7 @@ from standard_prices import PARSERS as STANDARD_PARSERS
 from high_volume_prices import parse_cloudways, parse_hetzner, HETZNER_JSON
 from official_pricing_expansion import read_snapshots, verified_snapshot_rows
 from dedicated_category import SOURCE as DEDICATED_SOURCE, live_verify as verify_dedicated
+from manual_firstparty import read_manual, MANUAL_NAMES
 
 USER_AGENT = "VPSPricingRadar/1.0 (+public pricing directory)"
 OUTPUT = ROOT / "data/offers.json"
@@ -77,6 +78,7 @@ def collect():
             pass
     old_offers = {o['id']: o for o in previous.get('offers', []) if isinstance(o, dict) and o.get('id')}
     snapshots = read_snapshots()
+    manual = read_manual()
     old_prices = {(p.get('name'), row.get('model')): row
                   for p in previous.get('providers', []) if isinstance(p, dict)
                   for row in p.get('list_prices', []) if isinstance(row, dict) and row.get('model')}
@@ -88,6 +90,12 @@ def collect():
     def check_provider(entry):
         row = dict(entry)
         row.update(status="not_checked", page_title="", verified_deal_count=0, list_prices=[])
+        if entry["name"] in MANUAL_NAMES:
+            # Owner copied these public first-party price tables. No request to a robots-blocked URL.
+            row["list_prices"] = manual.get(entry["name"], [])
+            row["status"] = ("owner_manual_firstparty_verified" if row["list_prices"]
+                             else "manual_quote_expired")
+            return row, [], None
         try:
             source_html = read_official(entry["source_url"])
             title = Title()

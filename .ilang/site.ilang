@@ -6,6 +6,28 @@ DigitalOcean | https://www.digitalocean.com | https://www.digitalocean.com/prici
 Hetzner | https://www.hetzner.com | https://www.hetzner.com/cloud/ |
 Hostinger | https://www.hostinger.com | https://www.hostinger.com/vps-hosting |
 IONOS | https://www.ionos.com | https://www.ionos.com/servers/vps.html |
+DreamHost | https://www.dreamhost.com | https://www.dreamhost.com/hosting/vps/ |
+InMotion Hosting | https://www.inmotionhosting.com | https://www.inmotionhosting.com/vps-hosting |
+Ultahost | https://ultahost.com | https://ultahost.com/vps-hosting |
+OVHcloud | https://us.ovhcloud.com | https://us.ovhcloud.com/vps/ |
+Kamatera | https://www.kamatera.com | https://www.kamatera.com/solutions/vps-hosting/ |
+Cloudways | https://www.cloudways.com | https://www.cloudways.com/en/vps-hosting.php |
+ScalaHosting | https://www.scalahosting.com | https://www.scalahosting.com/cloud-vps-hosting.html |
+GreenGeeks | https://www.greengeeks.com | https://www.greengeeks.com/vps-hosting |
+AccuWeb Hosting | https://www.accuwebhosting.com | https://www.accuwebhosting.com/vps-hosting |
+Hostwinds | https://www.hostwinds.com | https://www.hostwinds.com/vps |
+HostArmada | https://hostarmada.com | https://hostarmada.com/vps-hosting/ |
+Atlantic.Net | https://www.atlantic.net | https://www.atlantic.net/vps-hosting/ |
+UpCloud | https://upcloud.com | https://upcloud.com/pricing/ |
+KnownHost | https://www.knownhost.com | https://www.knownhost.com/vps-hosting |
+Verpex | https://verpex.com | https://verpex.com/vps-hosting |
+Webdock | https://webdock.io | https://webdock.io/en/pricing |
+TMDHosting | https://www.tmdhosting.com | https://www.tmdhosting.com/vps-hosting.html |
+HostZealot | https://www.hostzealot.com | https://www.hostzealot.com/vps |
+HostHatch | https://hosthatch.com | https://hosthatch.com/cloud |
+Hosting.com | https://hosting.com | https://hosting.com/hosting/vps-hosting/ |
+BuyVM | https://buyvm.net | https://buyvm.net/kvm-dedicated-server-slices/ |
+Netcup | https://www.netcup.com | https://www.netcup.com/en/server/vps |
 ::MODULE{FIELDS|title:可验证字段}
 model regular_monthly_usd promo_monthly_usd savings_monthly_usd discount_percent promo_months region offer_url source_url verified_at last_changed_at contract_note valid_until(仅官方明确时) availability(仅官方明确时)
 ::RULE{无验证价格的条目不产生价格型优惠卡片}

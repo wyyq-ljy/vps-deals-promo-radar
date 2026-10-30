@@ -2,7 +2,7 @@
 
 **Live site:** https://vps.madebyyong.com/ · **Source:** https://github.com/wyyq-ljy/vps-deals-promo-radar
 
-A **VPS deal** is published **only when the provider shows a regular price and a lower promotional price for the same plan on the same official page**, together with clear offer terms. List prices, free signup credits, coupon speculation and marketing headlines without comparable per-plan prices do not become deals. Hostinger and IONOS are monitored for explicit price reductions; DigitalOcean and Hetzner are monitored but show no deals unless an official matched discount source is added. Vultr and Linode have been replaced after their earlier official pricing pages were unavailable for compliant automated checks. One deal page is generated per verified discount; when no deals qualify, the sitemap includes only the homepage, four provider pages, and comparison page.
+A **VPS deal** is published **only when the provider shows a regular price and a lower promotional price for the same plan on the same official page**, together with clear offer terms. List prices, free signup credits, coupon speculation and marketing headlines without comparable per-plan prices do not become deals. The first verified discount parsers cover Hostinger, IONOS, DreamHost, InMotion Hosting, Ultahost and HostArmada. Other official providers are present in the I-Lang monitored-source directory but are explicitly marked `parser_not_implemented` until a source-specific extraction is reviewed. A reachable official page is not proof that it has no promotion. No plan without a validated price difference is indexed as a deal. When all providers have zero qualifying discounts, the sitemap retains only the homepage, provider overviews and comparison page.
 
 ## Quick start
 
@@ -20,7 +20,7 @@ Already connected to GitHub `main`. Build command: `python build.py`; output dir
 
 ## Update automation
 
-`.github/workflows/update.yml` runs every six hours, checks official sources, builds and tests, then commits updated verified data. A refresh with zero qualifying discounts is **valid**: it replaces stale deals with an empty list (the sitemap then has only six non-deal URLs). An inaccessible provider cannot retain old deals. A deal carries its official source, last verification timestamp, actual original/promotional price difference, commitment and renewal note. `last_changed_at` is retained across unchanged price checks; the sitemap emits `lastmod` on deal URLs only from that meaningful change time, not from each cron execution. Schedules can be delayed or disabled after prolonged inactivity; check Actions and Cloudflare deployment logs.
+`.github/workflows/update.yml` runs every six hours, checks official sources, builds and tests, then commits updated verified data. A refresh with zero qualifying discounts is **valid**: it replaces stale deals with an empty list (the sitemap then has only the non-deal URLs for the configured providers plus the homepage and comparison). An inaccessible provider cannot retain old deals. A deal carries its official source, last verification timestamp, actual original/promotional price difference, commitment and renewal note. `last_changed_at` is retained across unchanged price checks; the sitemap emits `lastmod` on deal URLs only from that meaningful change time, not from each cron execution. Schedules can be delayed or disabled after prolonged inactivity; check Actions and Cloudflare deployment logs.
 
 ## Retired list-price pages
 

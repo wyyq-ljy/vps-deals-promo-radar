@@ -23,8 +23,11 @@ class TestDeals(unittest.TestCase):
     def test_config_and_replaced_sources(self):
         site, providers = load_config()
         self.assertEqual(site['locale'], 'en-US')
-        self.assertEqual([p['name'] for p in providers],
-                         ['DigitalOcean', 'Hetzner', 'Hostinger', 'IONOS'])
+        self.assertGreaterEqual(len(providers), 20)
+        self.assertEqual(len({p['name'] for p in providers}), len(providers))
+        self.assertIn('DreamHost', [p['name'] for p in providers])
+        self.assertIn('InMotion Hosting', [p['name'] for p in providers])
+        self.assertIn('Ultahost', [p['name'] for p in providers])
         self.assertTrue(all(p['source_url'].startswith('https://') for p in providers))
 
     def test_ionos_requires_same_card_original_and_sale_and_terms(self):
@@ -85,7 +88,7 @@ class TestDeals(unittest.TestCase):
         offers=valid_offers(actual['offers'],load_config()[1])
         site_builder.build()
         xml=(site_builder.OUT/'sitemap.xml').read_text(encoding='utf-8')
-        self.assertEqual(xml.count('<loc>'),6+len(offers))
+        self.assertEqual(xml.count('<loc>'),2+len(load_config()[1])+len(offers))
         self.assertEqual(xml.count('/deals/'),len(offers))
         self.assertNotIn('/deals/hetzner-cpx22-hel1/', xml)
         self.assertNotIn('/deals/digitalocean-basic-',xml)
@@ -98,12 +101,12 @@ class TestDeals(unittest.TestCase):
             self.assertIn(offer['promo_monthly_usd'],detail)
             self.assertNotIn('Not specified in this pricing source',detail)
 
-    def test_zero_offer_build_has_only_six_urls(self):
+    def test_zero_offer_build_has_only_provider_and_index_urls(self):
         with patch.object(site_builder,'valid_offers',return_value=[]):
             site_builder.build()
             xml=(site_builder.OUT/'sitemap.xml').read_text(encoding='utf-8')
             home=(site_builder.OUT/'index.html').read_text(encoding='utf-8')
-            self.assertEqual(xml.count('<loc>'),6)
+            self.assertEqual(xml.count('<loc>'),2+len(load_config()[1]))
             self.assertNotIn('/deals/',xml)
             self.assertIn('No verified discounts currently.',home)
         site_builder.build()

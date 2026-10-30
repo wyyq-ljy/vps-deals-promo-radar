@@ -5,6 +5,7 @@
 from collections import defaultdict
 from decimal import Decimal
 from html import escape
+import re
 from pricing_sources import money
 from seo_helpers import breadcrumbs, expired, jsonld, valid_expiry
 from template_engine import render
@@ -13,6 +14,9 @@ from template_engine import render
 def e(value):
     return escape(str(value if value is not None else ""), quote=True)
 
+
+def provider_slug(value):
+    return re.sub(r'-+', '-', re.sub(r'[^a-z0-9]+', '-', value.lower())).strip('-')
 
 def valid_offers(records, providers):
     allowed = {p["name"] for p in providers}
@@ -30,7 +34,7 @@ def valid_offers(records, providers):
                 or item.get("price_type") != "verified_discount"
                 or item.get("currency") != "USD"
                 or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789-" for c in item["id"])
-                or not item["id"].startswith(("hostinger-", "ionos-"))
+                or not item["id"].startswith(provider_slug(item["provider"]) + "-")
                 or any(not item[k].startswith("https://") for k in ("source_url", "offer_url"))
                 or (item.get('valid_until') and not valid_expiry(item['valid_until']))
                 or expired(item)):
@@ -111,7 +115,7 @@ def build_deals(items, page, save, brand, base="", affiliate_links=None):
         })
         if base:
             structured += breadcrumbs(base, [
-                ("Home", ""), (item["provider"], f'providers/{item["provider"].lower()}/'),
+                ("Home", ""), (item["provider"], f'providers/{provider_slug(item["provider"])}/'),
                 (item["plan"], route),
             ])
         affiliate_url = affiliate_links.get(item['provider'], '')

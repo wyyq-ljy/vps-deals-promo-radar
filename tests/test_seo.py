@@ -91,7 +91,7 @@ class SEOAndAutomation(unittest.TestCase):
         build.build()
         root = ET.fromstring((build.OUT / "sitemap.xml").read_bytes())
         locs = [u.find(NS + "loc").text for u in root.findall(NS + "url")]
-        self.assertEqual(len(locs), 6 + len(self.data["offers"]))
+        self.assertEqual(len(locs), 2 + len(self.providers) + len(valid_offers(self.data["offers"], self.providers)))
         for row in root.findall(NS + "url"):
             url = row.find(NS + "loc").text
             lm = row.find(NS + "lastmod")

@@ -5,12 +5,15 @@
 import datetime as dt
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 from urllib.robotparser import RobotFileParser
 from config import ROOT, load_config
 from pricing_sources import parse_hostinger, parse_ionos
+from extra_sources import parse_dreamhost, parse_inmotion, parse_ultahost
+from hostarmada_source import parse_hostarmada
 
 USER_AGENT = "VPSPricingRadar/1.0 (+public pricing directory)"
 OUTPUT = ROOT / "data/offers.json"
@@ -70,9 +73,11 @@ def collect():
             pass
     old_offers = {o['id']: o for o in previous.get('offers', []) if isinstance(o, dict) and o.get('id')}
     result = {"offers": [], "providers": [], "warnings": []}
-    parsers = {"Hostinger": parse_hostinger, "IONOS": parse_ionos}
-    seen = set()
-    for entry in providers:
+    parsers = {"Hostinger": parse_hostinger, "IONOS": parse_ionos,
+               "DreamHost": parse_dreamhost, "InMotion Hosting": parse_inmotion,
+               "Ultahost": parse_ultahost, "HostArmada": parse_hostarmada}
+
+    def check_provider(entry):
         row = dict(entry)
         row.update(status="not_checked", page_title="", verified_deal_count=0)
         try:
@@ -80,24 +85,40 @@ def collect():
             title = Title()
             title.feed(source_html)
             row["page_title"] = " ".join("".join(title.text).split())[:180]
-            parse = parsers.get(entry["name"])
-            for offer in (parse(source_html, now) if parse else []):
-                if offer['id'] not in seen:
-                    before = old_offers.get(offer['id'], {})
-                    meaningfully_equal = (
-                        {k:v for k,v in before.items() if k not in ('verified_at','last_changed_at')}
-                        == {k:v for k,v in offer.items() if k != 'verified_at'}
-                    )
-                    offer['last_changed_at'] = (
-                        before.get('last_changed_at') or before.get('verified_at') or now
-                    ) if meaningfully_equal else now
-                    seen.add(offer['id'])
-                    result['offers'].append(offer)
-                    row['verified_deal_count'] += 1
-            row["status"] = "verified_discounts" if row["verified_deal_count"] else "no_verified_discount"
+            parser = parsers.get(entry["name"])
+            if not parser:
+                # A reachable provider page is not proof of no promotions.
+                # Never assert that unsupported markup was price-validated.
+                row["status"] = "parser_not_implemented"
+                return row, [], None
+            offers = parser(source_html, now)
+            row["status"] = "verified_discounts" if offers else "no_verified_discount"
+            return row, offers, None
         except Exception as exc:
             row["status"] = "robots_blocked" if isinstance(exc, PermissionError) else "fetch_failed"
-            result["warnings"].append(f'{entry["name"]}: {type(exc).__name__} - {str(exc)[:110]}')
+            return row, [], f'{entry["name"]}: {type(exc).__name__} - {str(exc)[:110]}'
+
+    # Independent official origins are checked concurrently, to keep the
+    # six-hour GitHub Actions job bounded even with 20+ monitored vendors.
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        scanned = list(executor.map(check_provider, providers))
+    seen = set()
+    for row, offers, warning in scanned:
+        if warning:
+            result["warnings"].append(warning)
+        for offer in offers:
+            if offer["id"] not in seen:
+                before = old_offers.get(offer["id"], {})
+                meaningfully_equal = (
+                    {k:v for k,v in before.items() if k not in ("verified_at","last_changed_at")}
+                    == {k:v for k,v in offer.items() if k != "verified_at"}
+                )
+                offer["last_changed_at"] = (
+                    before.get("last_changed_at") or before.get("verified_at") or now
+                ) if meaningfully_equal else now
+                seen.add(offer["id"])
+                result["offers"].append(offer)
+                row["verified_deal_count"] += 1
         result["providers"].append(row)
     # Zero verified deals is a valid outcome. In particular, never preserve
     # old "standard_list_price" rows as live deals.

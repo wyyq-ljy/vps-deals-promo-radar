@@ -14,5 +14,7 @@
 ::RULE{templates文件负责HTML,构建不依赖任何AI或收费API}
 ::RULE{多语言须有真实地区价格+本币+官方来源+hreflang,否则不得启用}
 ::RULE{联盟申请批准后才能加affiliate,不自买自推不注入Cookie不竞价品牌词}
-::RULE{代码变更需验证9个旧测试+新回归,对比sitemap deal条数和数据条数}
+::RULE{代码变更需运行所有 unittest,确认sitemap = 2+配置厂商数+严格核实的deal数}
+::RULE{未实现专用解析器的厂商只能标记parser_not_implemented,不能声称官网没有优惠}
+::RULE{每家来源必须检查robots.txt和HTTPS；第三方错误、403、超时不得绕过反爬}
 ::RULE{不得向 GitHub 或网站提交秘密}

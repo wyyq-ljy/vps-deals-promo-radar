@@ -1,106 +1,6 @@
 {
   "offers": [
     {
-      "id": "dreamhost-stack-16",
-      "provider": "DreamHost",
-      "plan": "Stack 16",
-      "price_type": "verified_discount",
-      "currency": "USD",
-      "regular_monthly_usd": "34.99",
-      "promo_monthly_usd": "22.99",
-      "savings_monthly_usd": "12.00",
-      "discount_percent": 34,
-      "promo_months": 3,
-      "upfront_usd": "",
-      "renewal_monthly_usd": "34.99",
-      "contract_note": "Promotional rate for first 3 months; official page lists the subsequent auto-renewal rate",
-      "vcpus": "4 vCPU AMD EPYC",
-      "memory": "16 GB RAM",
-      "disk": "250 GB NVMe SSD",
-      "transfer": "Unmetered Bandwidth",
-      "region": "Select at checkout",
-      "source_url": "https://www.dreamhost.com/hosting/vps/",
-      "offer_url": "https://www.dreamhost.com/hosting/vps/",
-      "verified_at": "2026-10-30T12:25:30+00:00",
-      "pricing_note": "Official page shows the first-three-month promotional price and the higher auto-renewal rate, with a published SAVE percentage. Confirm actual checkout term, upfront payment and subsequent charges.",
-      "last_changed_at": "2026-10-30T12:22:09+00:00"
-    },
-    {
-      "id": "dreamhost-stack-32",
-      "provider": "DreamHost",
-      "plan": "Stack 32",
-      "price_type": "verified_discount",
-      "currency": "USD",
-      "regular_monthly_usd": "59.99",
-      "promo_monthly_usd": "45.99",
-      "savings_monthly_usd": "14.00",
-      "discount_percent": 23,
-      "promo_months": 3,
-      "upfront_usd": "",
-      "renewal_monthly_usd": "59.99",
-      "contract_note": "Promotional rate for first 3 months; official page lists the subsequent auto-renewal rate",
-      "vcpus": "8 vCPU AMD EPYC",
-      "memory": "32 GB RAM",
-      "disk": "450 GB NVMe SSD",
-      "transfer": "Unmetered Bandwidth",
-      "region": "Select at checkout",
-      "source_url": "https://www.dreamhost.com/hosting/vps/",
-      "offer_url": "https://www.dreamhost.com/hosting/vps/",
-      "verified_at": "2026-10-30T12:25:30+00:00",
-      "pricing_note": "Official page shows the first-three-month promotional price and the higher auto-renewal rate, with a published SAVE percentage. Confirm actual checkout term, upfront payment and subsequent charges.",
-      "last_changed_at": "2026-10-30T12:22:09+00:00"
-    },
-    {
-      "id": "dreamhost-stack-4",
-      "provider": "DreamHost",
-      "plan": "Stack 4",
-      "price_type": "verified_discount",
-      "currency": "USD",
-      "regular_monthly_usd": "15.99",
-      "promo_monthly_usd": "8.99",
-      "savings_monthly_usd": "7.00",
-      "discount_percent": 44,
-      "promo_months": 3,
-      "upfront_usd": "",
-      "renewal_monthly_usd": "15.99",
-      "contract_note": "Promotional rate for first 3 months; official page lists the subsequent auto-renewal rate",
-      "vcpus": "2 vCPU AMD EPYC",
-      "memory": "4 GB RAM",
-      "disk": "75 GB NVMe SSD",
-      "transfer": "Unmetered Bandwidth",
-      "region": "Select at checkout",
-      "source_url": "https://www.dreamhost.com/hosting/vps/",
-      "offer_url": "https://www.dreamhost.com/hosting/vps/",
-      "verified_at": "2026-10-30T12:25:30+00:00",
-      "pricing_note": "Official page shows the first-three-month promotional price and the higher auto-renewal rate, with a published SAVE percentage. Confirm actual checkout term, upfront payment and subsequent charges.",
-      "last_changed_at": "2026-10-30T12:22:09+00:00"
-    },
-    {
-      "id": "dreamhost-stack-8",
-      "provider": "DreamHost",
-      "plan": "Stack 8",
-      "price_type": "verified_discount",
-      "currency": "USD",
-      "regular_monthly_usd": "21.99",
-      "promo_monthly_usd": "13.99",
-      "savings_monthly_usd": "8.00",
-      "discount_percent": 36,
-      "promo_months": 3,
-      "upfront_usd": "",
-      "renewal_monthly_usd": "21.99",
-      "contract_note": "Promotional rate for first 3 months; official page lists the subsequent auto-renewal rate",
-      "vcpus": "2 vCPU AMD EPYC",
-      "memory": "8 GB RAM",
-      "disk": "150 GB NVMe SSD",
-      "transfer": "Unmetered Bandwidth",
-      "region": "Select at checkout",
-      "source_url": "https://www.dreamhost.com/hosting/vps/",
-      "offer_url": "https://www.dreamhost.com/hosting/vps/",
-      "verified_at": "2026-10-30T12:25:30+00:00",
-      "pricing_note": "Official page shows the first-three-month promotional price and the higher auto-renewal rate, with a published SAVE percentage. Confirm actual checkout term, upfront payment and subsequent charges.",
-      "last_changed_at": "2026-10-30T12:22:09+00:00"
-    },
-    {
       "id": "hostarmada-flux",
       "provider": "HostArmada",
       "plan": "Flux",
@@ -121,7 +21,7 @@
       "region": "Select at checkout",
       "source_url": "https://hostarmada.com/vps-hosting/",
       "offer_url": "https://hostarmada.com/vps-hosting/",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "The same official page confirms matching plan name, annually billed prices, regular vs discounted rate, and 12-month duration in both displayed plan and embedded first-party pricing data. The annual total is charged at checkout; confirm tax and any restrictions before purchase.",
       "last_changed_at": "2026-10-30T12:25:30+00:00"
     },
@@ -146,7 +46,7 @@
       "region": "Select at checkout",
       "source_url": "https://hostarmada.com/vps-hosting/",
       "offer_url": "https://hostarmada.com/vps-hosting/",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "The same official page confirms matching plan name, annually billed prices, regular vs discounted rate, and 12-month duration in both displayed plan and embedded first-party pricing data. The annual total is charged at checkout; confirm tax and any restrictions before purchase.",
       "last_changed_at": "2026-10-30T12:25:30+00:00"
     },
@@ -171,7 +71,7 @@
       "region": "Select at checkout",
       "source_url": "https://hostarmada.com/vps-hosting/",
       "offer_url": "https://hostarmada.com/vps-hosting/",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "The same official page confirms matching plan name, annually billed prices, regular vs discounted rate, and 12-month duration in both displayed plan and embedded first-party pricing data. The annual total is charged at checkout; confirm tax and any restrictions before purchase.",
       "last_changed_at": "2026-10-30T12:25:30+00:00"
     },
@@ -196,7 +96,7 @@
       "region": "Select at checkout",
       "source_url": "https://hostarmada.com/vps-hosting/",
       "offer_url": "https://hostarmada.com/vps-hosting/",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "The same official page confirms matching plan name, annually billed prices, regular vs discounted rate, and 12-month duration in both displayed plan and embedded first-party pricing data. The annual total is charged at checkout; confirm tax and any restrictions before purchase.",
       "last_changed_at": "2026-10-30T12:25:30+00:00"
     },
@@ -221,7 +121,7 @@
       "region": "Select at checkout",
       "source_url": "https://www.hostinger.com/vps-hosting",
       "offer_url": "https://www.hostinger.com/vps-hosting",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Discounted price is an effective monthly rate billed in full upfront. Renewal rate is higher; taxes and region availability may vary.",
       "last_changed_at": "2026-10-30T09:06:57+00:00"
     },
@@ -246,7 +146,7 @@
       "region": "Select at checkout",
       "source_url": "https://www.hostinger.com/vps-hosting",
       "offer_url": "https://www.hostinger.com/vps-hosting",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Discounted price is an effective monthly rate billed in full upfront. Renewal rate is higher; taxes and region availability may vary.",
       "last_changed_at": "2026-10-30T09:06:57+00:00"
     },
@@ -271,7 +171,7 @@
       "region": "Select at checkout",
       "source_url": "https://www.hostinger.com/vps-hosting",
       "offer_url": "https://www.hostinger.com/vps-hosting",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Discounted price is an effective monthly rate billed in full upfront. Renewal rate is higher; taxes and region availability may vary.",
       "last_changed_at": "2026-10-30T09:06:57+00:00"
     },
@@ -296,7 +196,7 @@
       "region": "Select at checkout",
       "source_url": "https://www.hostinger.com/vps-hosting",
       "offer_url": "https://www.hostinger.com/vps-hosting",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Discounted price is an effective monthly rate billed in full upfront. Renewal rate is higher; taxes and region availability may vary.",
       "last_changed_at": "2026-10-30T09:06:57+00:00"
     },
@@ -321,7 +221,7 @@
       "region": "Select at checkout",
       "source_url": "https://www.ionos.com/servers/vps.html",
       "offer_url": "https://www.ionos.com/servers/vps.html",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Advertised 3-month introductory rate with 1-year commitment. Subsequent monthly charge, any fees and taxes must be confirmed at checkout. Do not treat the introductory rate as the full-year rate.",
       "last_changed_at": "2026-10-30T09:06:57+00:00"
     },
@@ -346,7 +246,7 @@
       "region": "Select at checkout",
       "source_url": "https://www.ionos.com/servers/vps.html",
       "offer_url": "https://www.ionos.com/servers/vps.html",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Advertised 3-month introductory rate with 1-year commitment. Subsequent monthly charge, any fees and taxes must be confirmed at checkout. Do not treat the introductory rate as the full-year rate.",
       "last_changed_at": "2026-10-30T09:06:57+00:00"
     },
@@ -371,7 +271,7 @@
       "region": "Select at checkout",
       "source_url": "https://www.ionos.com/servers/vps.html",
       "offer_url": "https://www.ionos.com/servers/vps.html",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Advertised 3-month introductory rate with 1-year commitment. Subsequent monthly charge, any fees and taxes must be confirmed at checkout. Do not treat the introductory rate as the full-year rate.",
       "last_changed_at": "2026-10-30T09:06:57+00:00"
     },
@@ -396,7 +296,7 @@
       "region": "Select at checkout",
       "source_url": "https://www.ionos.com/servers/vps.html",
       "offer_url": "https://www.ionos.com/servers/vps.html",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Advertised 3-month introductory rate with 1-year commitment. Subsequent monthly charge, any fees and taxes must be confirmed at checkout. Do not treat the introductory rate as the full-year rate.",
       "last_changed_at": "2026-10-30T09:06:57+00:00"
     },
@@ -421,7 +321,7 @@
       "region": "Select at checkout",
       "source_url": "https://www.ionos.com/servers/vps.html",
       "offer_url": "https://www.ionos.com/servers/vps.html",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Advertised 3-month introductory rate with 1-year commitment. Subsequent monthly charge, any fees and taxes must be confirmed at checkout. Do not treat the introductory rate as the full-year rate.",
       "last_changed_at": "2026-10-30T09:06:57+00:00"
     },
@@ -446,7 +346,7 @@
       "region": "Select at checkout",
       "source_url": "https://www.inmotionhosting.com/vps-hosting",
       "offer_url": "https://www.inmotionhosting.com/vps-hosting",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Selected the first displayed 24-month self-managed VPS offer within the named model card, matching its SAVE percentage and renewal reference. Other options shown on the same card may have different prices.",
       "last_changed_at": "2026-10-30T12:22:09+00:00"
     },
@@ -471,7 +371,7 @@
       "region": "Select at checkout",
       "source_url": "https://www.inmotionhosting.com/vps-hosting",
       "offer_url": "https://www.inmotionhosting.com/vps-hosting",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Selected the first displayed 24-month self-managed VPS offer within the named model card, matching its SAVE percentage and renewal reference. Other options shown on the same card may have different prices.",
       "last_changed_at": "2026-10-30T12:22:09+00:00"
     },
@@ -496,7 +396,7 @@
       "region": "Select at checkout",
       "source_url": "https://www.inmotionhosting.com/vps-hosting",
       "offer_url": "https://www.inmotionhosting.com/vps-hosting",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Selected the first displayed 24-month self-managed VPS offer within the named model card, matching its SAVE percentage and renewal reference. Other options shown on the same card may have different prices.",
       "last_changed_at": "2026-10-30T12:22:09+00:00"
     },
@@ -521,7 +421,7 @@
       "region": "Select at checkout",
       "source_url": "https://www.inmotionhosting.com/vps-hosting",
       "offer_url": "https://www.inmotionhosting.com/vps-hosting",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Selected the first displayed 24-month self-managed VPS offer within the named model card, matching its SAVE percentage and renewal reference. Other options shown on the same card may have different prices.",
       "last_changed_at": "2026-10-30T12:22:09+00:00"
     },
@@ -546,7 +446,7 @@
       "region": "Select at checkout",
       "source_url": "https://ultahost.com/vps-hosting",
       "offer_url": "https://ultahost.com/vps-hosting",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Original and discounted amounts are shown together in the named official plan card, with a 24-month billing term. The page's displayed percentage may be rounded; savings here use displayed monetary amounts. The posted renewal amount may equal the displayed promotional amount.",
       "last_changed_at": "2026-10-30T12:22:09+00:00"
     },
@@ -571,7 +471,7 @@
       "region": "Select at checkout",
       "source_url": "https://ultahost.com/vps-hosting",
       "offer_url": "https://ultahost.com/vps-hosting",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Original and discounted amounts are shown together in the named official plan card, with a 24-month billing term. The page's displayed percentage may be rounded; savings here use displayed monetary amounts. The posted renewal amount may equal the displayed promotional amount.",
       "last_changed_at": "2026-10-30T12:22:09+00:00"
     },
@@ -596,7 +496,7 @@
       "region": "Select at checkout",
       "source_url": "https://ultahost.com/vps-hosting",
       "offer_url": "https://ultahost.com/vps-hosting",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Original and discounted amounts are shown together in the named official plan card, with a 24-month billing term. The page's displayed percentage may be rounded; savings here use displayed monetary amounts. The posted renewal amount may equal the displayed promotional amount.",
       "last_changed_at": "2026-10-30T12:22:09+00:00"
     },
@@ -621,7 +521,7 @@
       "region": "Select at checkout",
       "source_url": "https://ultahost.com/vps-hosting",
       "offer_url": "https://ultahost.com/vps-hosting",
-      "verified_at": "2026-10-30T12:25:30+00:00",
+      "verified_at": "2026-10-30T12:30:06+00:00",
       "pricing_note": "Original and discounted amounts are shown together in the named official plan card, with a 24-month billing term. The page's displayed percentage may be rounded; savings here use displayed monetary amounts. The posted renewal amount may equal the displayed promotional amount.",
       "last_changed_at": "2026-10-30T12:22:09+00:00"
     }
@@ -668,9 +568,9 @@
       "website": "https://www.dreamhost.com",
       "source_url": "https://www.dreamhost.com/hosting/vps/",
       "affiliate_url": "",
-      "status": "verified_discounts",
+      "status": "no_verified_discount",
       "page_title": "VPS Hosting with Full Root Access | DreamHost",
-      "verified_deal_count": 4
+      "verified_deal_count": 0
     },
     {
       "name": "InMotion Hosting",
@@ -777,7 +677,7 @@
       "source_url": "https://upcloud.com/pricing/",
       "affiliate_url": "",
       "status": "parser_not_implemented",
-      "page_title": "UpCloud Pricing | Fixed prices and zero-cost data transfer",
+      "page_title": "UpCloud Pricing | Fixed Prices And Zero-cost Data Transfer",
       "verified_deal_count": 0
     },
     {
@@ -865,5 +765,5 @@
   "warnings": [
     "HostZealot: ValueError - source exceeds 2 MB"
   ],
-  "generated_at": "2026-10-30T12:25:30+00:00"
+  "generated_at": "2026-10-30T12:30:06+00:00"
 }

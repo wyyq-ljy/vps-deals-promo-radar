@@ -1,0 +1,84 @@
+{
+  "retired_list_price_pages": [
+    {
+      "id": "digitalocean-basic-regular-512-mib-ram-1-vcpu-10-gib-ssd",
+      "provider": "DigitalOcean"
+    },
+    {
+      "id": "digitalocean-basic-regular-1-gib-ram-1-vcpu-25-gib-ssd",
+      "provider": "DigitalOcean"
+    },
+    {
+      "id": "digitalocean-basic-regular-2-gib-ram-1-vcpu-50-gib-ssd",
+      "provider": "DigitalOcean"
+    },
+    {
+      "id": "digitalocean-basic-regular-2-gib-ram-2-vcpus-60-gib-ssd",
+      "provider": "DigitalOcean"
+    },
+    {
+      "id": "digitalocean-basic-regular-4-gib-ram-2-vcpus-80-gib-ssd",
+      "provider": "DigitalOcean"
+    },
+    {
+      "id": "digitalocean-basic-regular-8-gib-ram-4-vcpus-160-gib-ssd",
+      "provider": "DigitalOcean"
+    },
+    {
+      "id": "digitalocean-basic-regular-16-gib-ram-8-vcpus-320-gib-ssd",
+      "provider": "DigitalOcean"
+    },
+    {
+      "id": "hetzner-cpx02-hel1",
+      "provider": "Hetzner"
+    },
+    {
+      "id": "hetzner-cpx12-hel1",
+      "provider": "Hetzner"
+    },
+    {
+      "id": "hetzner-cpx22-hel1",
+      "provider": "Hetzner"
+    },
+    {
+      "id": "hetzner-cpx32-hel1",
+      "provider": "Hetzner"
+    },
+    {
+      "id": "hetzner-ccx13-hel1",
+      "provider": "Hetzner"
+    },
+    {
+      "id": "hetzner-cpx42-hel1",
+      "provider": "Hetzner"
+    },
+    {
+      "id": "hetzner-ccx23-hel1",
+      "provider": "Hetzner"
+    },
+    {
+      "id": "hetzner-cpx52-hel1",
+      "provider": "Hetzner"
+    },
+    {
+      "id": "hetzner-cpx62-hel1",
+      "provider": "Hetzner"
+    },
+    {
+      "id": "hetzner-ccx33-hel1",
+      "provider": "Hetzner"
+    },
+    {
+      "id": "hetzner-ccx43-hel1",
+      "provider": "Hetzner"
+    },
+    {
+      "id": "hetzner-ccx53-hel1",
+      "provider": "Hetzner"
+    },
+    {
+      "id": "hetzner-ccx63-hel1",
+      "provider": "Hetzner"
+    }
+  ]
+}

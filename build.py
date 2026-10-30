@@ -67,6 +67,17 @@ def build():
     compare='<div class="eyebrow">Official discounts only</div><h1>Compare real VPS savings</h1><p class="lead">We calculate savings only when the same official source shows both regular and promotional prices. Verify term lengths and renewal pricing.</p><section class="grid">'+deal_section+'</section><h2 class="section-title">Monitored providers</h2><div class="grid">'+cards_markup+'</div>'
     save('compare/index.html',page(f'Compare VPS Providers | {name}','Side-by-side links to official hosting pricing and billing conditions.',compare+'<script type="application/ld+json">'+item_schema+'</script>','compare/'))
     save('style.css',"""*{box-sizing:border-box}body{margin:0;background:#f6f8fb;color:#18243a;font:16px/1.65 ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}a{color:#215bc4;text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:1080px;margin:auto;padding:24px}header{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid #e0e6ed}.logo{font-weight:800;color:#14223d;font-size:20px}.logo span{font-size:12px;color:#748094;font-weight:500}nav{display:flex;gap:24px}nav a{color:#46536a;font-size:14px}main{padding-top:76px;padding-bottom:70px}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font-weight:700;font-size:11px;color:#2873b8}h1{font-size:clamp(38px,6vw,66px);letter-spacing:-.045em;line-height:1.08;max-width:850px;margin:16px 0 24px}h1 em{font-style:normal;color:#397bd6}.lead{font-size:18px;max-width:760px;color:#5d6a7e}.section-title{margin-top:65px;font-size:25px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:30px}.card{background:white;border:1px solid #e3e8ef;border-radius:18px;padding:28px;box-shadow:0 6px 28px #19396008}.card h2{font-size:24px;margin:9px 0}.card p{color:#677386}.actions{display:flex;gap:20px;flex-wrap:wrap;margin-top:24px;font-weight:650;font-size:14px}.secondary{color:#5d697a}footer{border-top:1px solid #dfe5ec;color:#6f7989;font-size:13px;padding-top:26px;padding-bottom:36px}@media(max-width:620px){.wrap{padding:18px}header .logo span{display:none}main{padding-top:52px}.grid{grid-template-columns:1fr}.card{padding:22px}}""")
+    # Permanently retire the old 20 ordinary-price URLs; they were never deals.
+    retired = json.loads((ROOT/'data/retired_deals.json').read_text(encoding='utf-8'))['retired_list_price_pages']
+    redirect_lines = []
+    for entry in retired:
+        identifier = entry['id']
+        provider = entry['provider']
+        if identifier != slug(identifier) or provider not in ('DigitalOcean', 'Hetzner'):
+            raise ValueError('Invalid retired deal redirect')
+        redirect_lines.append(f'/deals/{identifier}/ /providers/{slug(provider)}/ 301')
+    save('_redirects', '# Legacy list-price pages are not discounts\n'+'\n'.join(redirect_lines)+'\n')
+    save('404.html', '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"></head><body><h1>404 – Page not found</h1><p>This offer may have expired or been withdrawn.</p><a href="/">See verified VPS deals</a></body></html>')
     save('robots.txt', ('User-agent: *\nAllow: /\nSitemap: '+base+'/sitemap.xml\n') if host_ok else 'User-agent: *\nDisallow: /\n')
     from datetime import date
     # A build date is not a source verification date; no fabricated lastmod.

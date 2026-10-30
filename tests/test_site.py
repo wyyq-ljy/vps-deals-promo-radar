@@ -113,5 +113,14 @@ class TestDeals(unittest.TestCase):
             self.assertIn('Disallow: /',(site_builder.OUT/'robots.txt').read_text(encoding='utf-8'))
         site_builder.build()
 
+    def test_retired_standard_price_urls_have_permanent_redirects(self):
+        site_builder.build()
+        rules=(site_builder.OUT/'_redirects').read_text(encoding='utf-8')
+        entries=[line for line in rules.splitlines() if line and not line.startswith('#')]
+        self.assertEqual(len(entries),20)
+        self.assertIn('/deals/hetzner-cpx22-hel1/ /providers/hetzner/ 301',rules)
+        self.assertIn('/deals/digitalocean-basic-regular-512-mib-ram-1-vcpu-10-gib-ssd/ /providers/digitalocean/ 301',rules)
+        self.assertIn('noindex',(site_builder.OUT/'404.html').read_text(encoding='utf-8'))
+
 if __name__=='__main__':
     unittest.main()

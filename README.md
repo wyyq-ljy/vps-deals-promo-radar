@@ -20,6 +20,10 @@ Use **Connect to Git** (production branch `main`), build command `python build.p
 
 `.github/workflows/update.yml` runs every six hours, checks official sources, builds and tests, then commits updated verified data. A refresh with zero qualifying discounts is **valid**: it replaces stale deals with an empty list. An inaccessible provider cannot retain old deals, and standard list prices are always excluded. A deal carries the source URL, last verification timestamp, original and introductory price, savings amount, commitment and renewal note. GitHub Actions reports failures separately if the code crashes; schedule delays are possible. Scheduled GitHub Actions runs may be delayed or disabled after prolonged inactivity; monitor failures.
 
+## Retired list-price pages
+
+The prior 20 plain-list-price pages are removed from the sitemap. `data/retired_deals.json` records their exact historic slugs. Each build emits a permanent 301 from those URLs to the corresponding provider overview in `site/_redirects`, and a custom noindex `404.html` prevents unknown URLs being treated as the homepage. No historic list price is eligible for deal structured data.
+
 ## Compliance & monetization
 
 Official source links only by default. A fourth provider field can hold an **approved** affiliate destination; do not fill it before checking each program's terms. A disclosure is always rendered. Affiliate links do not change the recorded source URL. Informational pricing directory, no warranty of availability.

@@ -7,7 +7,10 @@ import json
 from pathlib import Path
 from urllib.parse import urlparse
 from config import ROOT, load_config
-from deal_site import valid_offers, build_deals, short_card
+from deal_site import valid_offers, build_deals, short_card, route_for
+from template_engine import render
+from seo_helpers import breadcrumbs, itemlist, jsonld, sitemap_xml
+from social_card import create_png
 
 OUT = ROOT/'site'
 def e(value): return html.escape(str(value or ''), quote=True)
@@ -16,23 +19,43 @@ def slug(s): return ''.join(c.lower() if c.isalnum() else '-' for c in s).strip(
 def build():
     site, configured = load_config()
     data = json.loads((ROOT/'data/offers.json').read_text('utf-8'))
+    # Production builds start with a clean checkout (site/ is gitignored).
+    # Avoid deleting files here: local desktops can forbid bulk file removal.
     OUT.mkdir(exist_ok=True)
     base = site.get('base_url','').rstrip('/')
-    host_ok = base.startswith('https://') and bool(urlparse(base).netloc) and base != 'https://example.com'
+    parsed_base = urlparse(base)
+    host_ok = (parsed_base.scheme == 'https' and bool(parsed_base.netloc)
+               and parsed_base.hostname == site.get('domain')
+               and not parsed_base.path.strip('/') and not parsed_base.query)
     name = site.get('brand') or 'VPS Deals'
     labels = site.get('niche') or 'VPS hosting'
     providers = {p['name']:p for p in data.get('providers', [])}
     def page(title, desc, body, path=''):
         canonical = f'{base}/{path}' if host_ok else ''
         meta = f'<link rel="canonical" href="{e(canonical)}">' if host_ok else '<meta name="robots" content="noindex,follow">'
-        meta += f'<meta property="og:url" content="{e(canonical)}">' if host_ok else ''
-        return f'''<!doctype html><html lang="en-US"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{e(title)}</title><meta name="description" content="{e(desc)}">{meta}<meta property="og:type" content="website"><meta property="og:title" content="{e(title)}"><meta property="og:description" content="{e(desc)}"><meta name="twitter:card" content="summary_large_image"><link rel="stylesheet" href="/style.css"></head><body><header class="wrap"><a class="logo" href="/">{e(name)}<span> / Verified VPS deals</span></a><nav><a href="/">Providers</a><a href="/compare/">Compare</a></nav></header><main class="wrap">{body}</main><footer class="wrap"><p>Independent informational directory. Links may become affiliate links if explicitly approved; any such link will be disclosed. Always confirm final pricing, taxes and renewal terms with the provider.</p><p>A deal requires the same official page to show both a regular price and a lower promotional price. Verify final checkout totals and renewal terms.</p></footer></body></html>'''
+        social = ''
+        if host_ok:
+            meta += f'<meta property="og:url" content="{e(canonical)}">'
+            image = base + '/og-card.png'
+            social = (f'<meta property="og:image" content="{e(image)}">'
+                      f'<meta property="og:image:width" content="1200">'
+                      f'<meta property="og:image:height" content="630">'
+                      f'<meta name="twitter:card" content="summary_large_image">'
+                      f'<meta name="twitter:image" content="{e(image)}">')
+        else:
+            social = '<meta name="twitter:card" content="summary">'
+        return render('base.html', lang=e(site.get('locale') or 'en-US'),
+                      title=e(title), description=e(desc), meta=meta,
+                      social_meta=social, brand=e(name), body=body)
     def save(path, text):
         file = OUT/path
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_text(text, encoding='utf-8')
+    create_png(OUT/'og-card.png', name)
     verified = valid_offers(data.get('offers', []), configured)
-    deal_routes, by_provider, deal_markup = build_deals(verified, page, save, name)
+    affiliate_links = {p['name']:p['affiliate_url'] for p in configured if p.get('affiliate_url')}
+    deal_routes, by_provider, deal_markup = build_deals(
+        verified, page, save, name, base if host_ok else '', affiliate_links)
     cards=[]
     item_list=[]
     for index, p in enumerate(configured,1):
@@ -48,24 +71,48 @@ def build():
                 f'<div class="actions"><a href="/{route}">Details</a>'
                 f'<a class="secondary" href="{e(official)}" rel="noopener noreferrer" target="_blank">Official source ↗</a></div></article>')
         cards.append(card)
-        item_list.append({'@type':'ListItem','position':index,'url':f'{base}/{route}' if host_ok else '/'+route})
-        body=(f'<div class="eyebrow">Provider overview</div><h1>{e(name_p)} VPS deals</h1>'
-              f'<p class="lead">{count} current verified discount offers. '
-              f'{"No verified discount currently. Check back after our next source scan." if count == 0 else "Every offer has evidence of a lower price against the same-page regular price."}</p>'
-              f'<section class="card"><h2>Official source</h2><p>Source status: {e(fetched.get("status","not checked"))}</p>'
-              f'<p><a href="{e(official)}" target="_blank" rel="noopener noreferrer">Open provider price source ↗</a></p></section>'
-              f'<section class="grid">{"".join(short_card(item) for item in plan_rows)}</section>'
-              f'<p><a href="/compare/">Compare other providers</a></p>')
+        item_list.append(route)
+        service = {'@context':'https://schema.org', '@type':'Service',
+                   'name':f'{name_p} VPS hosting',
+                   'provider':{'@type':'Organization','name':name_p,'url':p['website']}}
+        if plan_rows:
+            service['offers'] = [
+                {'@type':'Offer','price':x['promo_monthly_usd'],
+                 'priceCurrency':x['currency'],'url':x['offer_url']}
+                for x in plan_rows
+            ]
+        structured = jsonld(service)
+        if host_ok:
+            structured += breadcrumbs(base, [('Home',''), (name_p,route)])
+        body = render('provider.html', provider_name=e(name_p), count=str(count),
+                      status_message=('No verified discount currently. Check back after our next source scan.'
+                                      if count == 0 else 'Every offer has evidence of a lower price against the same-page regular price.'),
+                      source_status=e(fetched.get('status','not checked')),
+                      source_url=e(official),
+                      deal_cards=''.join(short_card(item) for item in plan_rows),
+                      structured_data=structured)
         save(route+'index.html',page(f'{name_p} VPS Pricing — Official Sources | {name}',f'Official {name_p} VPS pricing source and verification status. No unverified deals or estimates.',body,route))
     cards_markup=''.join(cards)
-    item_schema=json.dumps({'@context':'https://schema.org','@type':'ItemList','itemListElement':item_list},ensure_ascii=False).replace('</','<\\/')
+    item_schema = itemlist(base if host_ok else '', item_list)
     intro=f'<div class="eyebrow">Independent • verified VPS savings • direct official sources</div><h1>Find actual VPS discounts.<br><em>Check the real price difference.</em></h1><p class="lead">We only publish an offer when a provider displays both its regular and lower promotional price for the same VPS plan. Review the first-term commitment, renewal costs, and linked evidence before ordering.</p>'
     grid=f'<section class="grid">{cards_markup}</section>'
     empty = '<p class="lead">No verified discounts currently. We will publish deals only when official regular and promotional prices differ.</p>'
     deal_section = deal_markup if verified else empty
-    save('index.html',page(f'{name} — Verified VPS Discounts & Hosting Offers',f'Compare independently verified VPS discounts and their official price evidence.',intro+f'<h2 class="section-title">Verified discounts ({len(verified)})</h2><section class="grid">{deal_section}</section>'+'<h2 class="section-title">Monitored VPS providers</h2>'+grid+f'<script type="application/ld+json">{item_schema}</script>'))
-    compare='<div class="eyebrow">Official discounts only</div><h1>Compare real VPS savings</h1><p class="lead">We calculate savings only when the same official source shows both regular and promotional prices. Verify term lengths and renewal pricing.</p><section class="grid">'+deal_section+'</section><h2 class="section-title">Monitored providers</h2><div class="grid">'+cards_markup+'</div>'
-    save('compare/index.html',page(f'Compare VPS Providers | {name}','Side-by-side links to official hosting pricing and billing conditions.',compare+'<script type="application/ld+json">'+item_schema+'</script>','compare/'))
+    home_body = render('index.html', intro=intro, deal_count=str(len(verified)),
+                       deal_section=deal_section, provider_grid=grid,
+                       structured_data=item_schema)
+    save('index.html',page(f'{name} — Verified VPS Discounts & Hosting Offers',
+                           'Compare independently verified VPS discounts and their official price evidence.',
+                           home_body))
+    compare_items = [route_for(offer) for offer in verified] if verified else item_list
+    compare_schema = itemlist(base if host_ok else '', compare_items)
+    if host_ok:
+        compare_schema += breadcrumbs(base, [('Home',''), ('Compare','compare/')])
+    compare = render('compare.html', deal_section=deal_section,
+                     provider_cards=cards_markup, structured_data=compare_schema)
+    save('compare/index.html',page(f'Compare VPS Providers | {name}',
+         'Side-by-side links to official hosting pricing and billing conditions.',
+         compare, 'compare/'))
     save('style.css',"""*{box-sizing:border-box}body{margin:0;background:#f6f8fb;color:#18243a;font:16px/1.65 ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}a{color:#215bc4;text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:1080px;margin:auto;padding:24px}header{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid #e0e6ed}.logo{font-weight:800;color:#14223d;font-size:20px}.logo span{font-size:12px;color:#748094;font-weight:500}nav{display:flex;gap:24px}nav a{color:#46536a;font-size:14px}main{padding-top:76px;padding-bottom:70px}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font-weight:700;font-size:11px;color:#2873b8}h1{font-size:clamp(38px,6vw,66px);letter-spacing:-.045em;line-height:1.08;max-width:850px;margin:16px 0 24px}h1 em{font-style:normal;color:#397bd6}.lead{font-size:18px;max-width:760px;color:#5d6a7e}.section-title{margin-top:65px;font-size:25px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:30px}.card{background:white;border:1px solid #e3e8ef;border-radius:18px;padding:28px;box-shadow:0 6px 28px #19396008}.card h2{font-size:24px;margin:9px 0}.card p{color:#677386}.actions{display:flex;gap:20px;flex-wrap:wrap;margin-top:24px;font-weight:650;font-size:14px}.secondary{color:#5d697a}footer{border-top:1px solid #dfe5ec;color:#6f7989;font-size:13px;padding-top:26px;padding-bottom:36px}@media(max-width:620px){.wrap{padding:18px}header .logo span{display:none}main{padding-top:52px}.grid{grid-template-columns:1fr}.card{padding:22px}}""")
     # Permanently retire the old 20 ordinary-price URLs; they were never deals.
     retired = json.loads((ROOT/'data/retired_deals.json').read_text(encoding='utf-8'))['retired_list_price_pages']
@@ -79,10 +126,14 @@ def build():
     save('_redirects', '# Legacy list-price pages are not discounts\n'+'\n'.join(redirect_lines)+'\n')
     save('404.html', '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"></head><body><h1>404 – Page not found</h1><p>This offer may have expired or been withdrawn.</p><a href="/">See verified VPS deals</a></body></html>')
     save('robots.txt', ('User-agent: *\nAllow: /\nSitemap: '+base+'/sitemap.xml\n') if host_ok else 'User-agent: *\nDisallow: /\n')
-    from datetime import date
-    # A build date is not a source verification date; no fabricated lastmod.
     routes=['','compare/']+[f'providers/{slug(p["name"])}/' for p in configured]+deal_routes
-    sitemap='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+''.join(f'<url><loc>{e(base+"/"+route)}</loc></url>\n' for route in routes)+'</urlset>' if host_ok else '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>'
+    # Source checks do not imply substantial page changes: lastmod tracks
+    # initial detection or a changed price/term, not a rebuild/cron timestamp.
+    changes = {}
+    for offer in verified:
+        stamp = offer.get('last_changed_at') or offer.get('verified_at')
+        changes['/' + route_for(offer)] = stamp
+    sitemap = sitemap_xml(base if host_ok else '', ['/'+r for r in routes], changes)
     save('sitemap.xml',sitemap)
     print('Built:',len(routes),'pages; canonical configured:',host_ok)
 

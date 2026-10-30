@@ -1,3 +1,6 @@
+# ::ILANG [TYPE:python-module][ROLE:provider-price-parsers]
+# ::RULE{one verified plan and same-card price pair per discount}
+# ::BOUNDARY{never:infer renewal, guess coupon expiry, bypass blocked sources}
 """Only publish live, same-official-page old-price vs promotional-price differences.
 
 Marketing-only claims, signup credits, standard list prices, missing

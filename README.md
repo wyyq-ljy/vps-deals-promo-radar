@@ -1,4 +1,6 @@
-# VPS Deals — Official Pricing Radar
+# VPS Deals — Verified VPS Discounts
+
+**Live site:** https://vps.madebyyong.com/ · **Source:** https://github.com/wyyq-ljy/vps-deals-promo-radar
 
 A **VPS deal** is published **only when the provider shows a regular price and a lower promotional price for the same plan on the same official page**, together with clear offer terms. List prices, free signup credits, coupon speculation and marketing headlines without comparable per-plan prices do not become deals. Hostinger and IONOS are monitored for explicit price reductions; DigitalOcean and Hetzner are monitored but show no deals unless an official matched discount source is added. Vultr and Linode have been replaced after their earlier official pricing pages were unavailable for compliant automated checks. One deal page is generated per verified discount; when no deals qualify, the sitemap includes only the homepage, four provider pages, and comparison page.
 
@@ -14,11 +16,11 @@ Static output: `site/`. Python 3.11+; no external Python dependencies.
 
 ## Cloudflare Pages
 
-Use **Connect to Git** (production branch `main`), build command `python build.py`, build output `site`. The site URL must be copied from the actual Pages deployment. Update `domain` and `base_url` in `.ilang/site.ilang` to that exact URL, commit, rebuild, and verify `sitemap.xml` and `robots.txt`. Until a verified URL is present, the site intentionally disallows indexing to prevent emitting wrong canonical URLs.
+Already connected to GitHub `main`. Build command: `python build.py`; output directory: `site/`. Production canonical and sitemap are **https://vps.madebyyong.com/**. The `pages.dev` deployment is only the fallback/testing address. When changing domains, update *both* `domain` and `base_url` in `.ilang/site.ilang` and verify every sitemap and canonical URL after deployment. Never synthesize a Pages hostname from the project name. Output is deterministic and uses no runtime inference, credentials or paid APIs.
 
 ## Update automation
 
-`.github/workflows/update.yml` runs every six hours, checks official sources, builds and tests, then commits updated verified data. A refresh with zero qualifying discounts is **valid**: it replaces stale deals with an empty list. An inaccessible provider cannot retain old deals, and standard list prices are always excluded. A deal carries the source URL, last verification timestamp, original and introductory price, savings amount, commitment and renewal note. GitHub Actions reports failures separately if the code crashes; schedule delays are possible. Scheduled GitHub Actions runs may be delayed or disabled after prolonged inactivity; monitor failures.
+`.github/workflows/update.yml` runs every six hours, checks official sources, builds and tests, then commits updated verified data. A refresh with zero qualifying discounts is **valid**: it replaces stale deals with an empty list (the sitemap then has only six non-deal URLs). An inaccessible provider cannot retain old deals. A deal carries its official source, last verification timestamp, actual original/promotional price difference, commitment and renewal note. `last_changed_at` is retained across unchanged price checks; the sitemap emits `lastmod` on deal URLs only from that meaningful change time, not from each cron execution. Schedules can be delayed or disabled after prolonged inactivity; check Actions and Cloudflare deployment logs.
 
 ## Retired list-price pages
 
@@ -26,6 +28,15 @@ The prior 20 plain-list-price pages are removed from the sitemap. `data/retired_
 
 ## Compliance & monetization
 
-Official source links only by default. A fourth provider field can hold an **approved** affiliate destination; do not fill it before checking each program's terms. A disclosure is always rendered. Affiliate links do not change the recorded source URL. Informational pricing directory, no warranty of availability.
+Official source links only by default. Once a real affiliate application is approved, the **fourth pipe-delimited field** in `.ilang/site.ilang` can contain that provider's authorized HTTPS affiliate landing URL. The generated action link will then be explicitly marked as affiliate and carry `rel="nofollow sponsored"`; the independent evidence/source link and structured-data official price remain unchanged. Do not fill this field without platform approval and permission to promote on a coupon directory. No cookie injection, self-referral, trademark-bidding circumvention or invented commission claims. An eventual website sale depends on verifiable revenue, traffic, domain transferability and real buyer demand; it is not guaranteed. Informational directory only; always verify final checkout terms.
+
+## SEO and verification
+
+- `templates/base.html`, `index.html`, `provider.html`, `deal.html` and `compare.html` are actually used by Python, not decorative examples. They can be updated without installing dependencies.
+- Detail pages have Product/Offer and BreadcrumbList JSON-LD; provider pages have Service and real Offer entries if deals exist; lists have ItemList. Schema only includes `priceValidUntil` and `availability` if the official source explicitly provides them. Rich results are not guaranteed.
+- Each page has a matching canonical, Open Graph metadata and a generated 1200×630 social PNG. The sitemap is generated by `build.py` and uses `last_changed_at` for price-changing details, not a made-up build date.
+- Search Console domain ownership is verified and the production sitemap has been submitted. Indexing is controlled by Google, not guaranteed by submission.
+- Currently only English (`en-US`) and USD are supported. Adding `de/ja/es` requires genuinely localized sources, prices, billing and reciprocal hreflang; do not relabel US prices as local offers.
+- Github and other content distribution must provide independent utility, not fabricated backlinks or automatic spam.
 
 Site rules are described using I-Lang; see `.ilang/site.ilang`; protocol notes: https://ilang.ai.

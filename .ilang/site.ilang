@@ -7,9 +7,14 @@ Hetzner | https://www.hetzner.com | https://www.hetzner.com/cloud/ |
 Hostinger | https://www.hostinger.com | https://www.hostinger.com/vps-hosting |
 IONOS | https://www.ionos.com | https://www.ionos.com/servers/vps.html |
 ::MODULE{FIELDS|title:可验证字段}
-model regular_monthly_usd promo_monthly_usd savings_monthly_usd discount_percent promo_months region offer_url source_url verified_at contract_note
+model regular_monthly_usd promo_monthly_usd savings_monthly_usd discount_percent promo_months region offer_url source_url verified_at last_changed_at contract_note valid_until(仅官方明确时) availability(仅官方明确时)
 ::RULE{无验证价格的条目不产生价格型优惠卡片}
 ::RULE{不把常规公开标价称为限时促销}
 ::RULE{deal:仅同一官方页面同时有明确型号_同期常规原价_优惠价_实际价差_期限条件}
 ::RULE{常规公开标价_无明确让价_抓取失败的套餐不得进入deal或sitemap}
+::RULE{去重键:厂商+真实型号+货币,不依靠爬虫猜测标题}
+::RULE{来源校验时间不等于内容更新, sitemap.lastmod仅使用真实重要内容变化时间}
+::RULE{无活动截止日期不输出priceValidUntil,无可用库存证据不输出availability}
+::RULE{模板唯一来源:templates/*.html,Python只负责注入已验证数据}
+::RULE{只开放en-US和USD,多语言必须先接通对应区域官方价格与本地货币}
 ::BOUNDARY{never:编优惠 编价格 编截止日期 编佣金|scope:permanent}

@@ -1,3 +1,6 @@
+# ::ILANG [TYPE:python-module][ROLE:official-deal-collector]
+# ::RULE{read:.ilang/site.ilang; only same-page original vs promotion}
+# ::BOUNDARY{never:invent prices, currencies, expiry, or bypass robots}
 """First-party source monitor: only proven same-page price reductions are deals."""
 import datetime as dt
 import json
@@ -55,8 +58,17 @@ def read_official(url):
     return raw.decode("utf-8", "replace")
 
 def collect():
-    _, providers = load_config()
+    site, providers = load_config()
+    if site.get('locale') != 'en-US' or site.get('currency') != 'USD':
+        raise ValueError('This release only supports en-US/USD official pricing; add localized sources first')
     now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
+    previous = {}
+    if OUTPUT.exists():
+        try:
+            previous = json.loads(OUTPUT.read_text('utf-8'))
+        except (OSError, ValueError):
+            pass
+    old_offers = {o['id']: o for o in previous.get('offers', []) if isinstance(o, dict) and o.get('id')}
     result = {"offers": [], "providers": [], "warnings": []}
     parsers = {"Hostinger": parse_hostinger, "IONOS": parse_ionos}
     seen = set()
@@ -70,10 +82,18 @@ def collect():
             row["page_title"] = " ".join("".join(title.text).split())[:180]
             parse = parsers.get(entry["name"])
             for offer in (parse(source_html, now) if parse else []):
-                if offer["id"] not in seen:
-                    seen.add(offer["id"])
-                    result["offers"].append(offer)
-                    row["verified_deal_count"] += 1
+                if offer['id'] not in seen:
+                    before = old_offers.get(offer['id'], {})
+                    meaningfully_equal = (
+                        {k:v for k,v in before.items() if k not in ('verified_at','last_changed_at')}
+                        == {k:v for k,v in offer.items() if k != 'verified_at'}
+                    )
+                    offer['last_changed_at'] = (
+                        before.get('last_changed_at') or before.get('verified_at') or now
+                    ) if meaningfully_equal else now
+                    seen.add(offer['id'])
+                    result['offers'].append(offer)
+                    row['verified_deal_count'] += 1
             row["status"] = "verified_discounts" if row["verified_deal_count"] else "no_verified_discount"
         except Exception as exc:
             row["status"] = "robots_blocked" if isinstance(exc, PermissionError) else "fetch_failed"
@@ -83,11 +103,7 @@ def collect():
     # old "standard_list_price" rows as live deals.
     result["offers"].sort(key=lambda x: (x["provider"], x["plan"]))
     result["generated_at"] = now
-    previous = {}
-    if OUTPUT.exists():
-        try: previous = json.loads(OUTPUT.read_text("utf-8"))
-        except (OSError, ValueError): pass
-    if any(previous.get(k) != result[k] for k in ("offers", "providers", "warnings")):
+    if any(previous.get(k) != result[k] for k in ('offers', 'providers', 'warnings')):
         OUTPUT.parent.mkdir(parents=True, exist_ok=True)
         staging = OUTPUT.with_suffix(".json.tmp")
         staging.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

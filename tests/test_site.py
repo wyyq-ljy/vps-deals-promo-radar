@@ -1,3 +1,7 @@
+# ::ILANG [TYPE:python-module][ROLE:legacy-and-pricing-regression-tests]
+# ::RULE{official-price-or-zero-deal, no fake offer on page}
+# ::BOUNDARY{never:call paid APIs or fabricate source data}
+
 import json
 import sys
 import tempfile

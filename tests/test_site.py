@@ -126,7 +126,9 @@ class TestDeals(unittest.TestCase):
         site_builder.build()
         rules=(site_builder.OUT/'_redirects').read_text(encoding='utf-8')
         entries=[line for line in rules.splitlines() if line and not line.startswith('#')]
-        self.assertEqual(len(entries),20)
+        data=json.loads((ROOT/'data/offers.json').read_text('utf-8'))
+        indexed=sum(1 for v in data['providers'] if v.get('verified_deal_count',0) or len(v.get('list_prices',[]))>=3)
+        self.assertEqual(len(entries),20+len(load_config()[1])-indexed)
         self.assertIn('/deals/hetzner-cpx22-hel1/ /compare/ 301',rules)
         self.assertIn('/deals/digitalocean-basic-regular-512-mib-ram-1-vcpu-10-gib-ssd/ /providers/digitalocean/ 301',rules)
         self.assertIn('noindex',(site_builder.OUT/'404.html').read_text(encoding='utf-8'))

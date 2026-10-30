@@ -4,6 +4,7 @@
 """Build accessible SEO-oriented static landing/provider pages with stdlib."""
 import html
 import json
+import os
 from pathlib import Path
 from urllib.parse import urlparse
 from config import ROOT, load_config
@@ -180,7 +181,25 @@ def build():
             raise ValueError('Invalid retired deal redirect')
         destination = f'/providers/{slug(provider)}/' if f'providers/{slug(provider)}/' in item_list else '/compare/'
         redirect_lines.append(f'/deals/{identifier}/ {destination} 301')
-    save('_redirects', '# Legacy list-price pages are not discounts\n'+'\n'.join(redirect_lines)+'\n')
+    # Do not allow formerly published but now unsupported provider shells to
+    # remain live merely because a Pages build reused its generated output.
+    supported = set(item_list)
+    absent = [
+        f'providers/{slug(p["name"])}/' for p in configured
+        if f'providers/{slug(p["name"])}/' not in supported
+    ]
+    redirect_lines.extend(f'/{route} /compare/ 301' for route in absent)
+    save('_redirects', '# Retired ordinary-price deals and unsupported provider shells\n'
+         + '\n'.join(redirect_lines) + '\n')
+    # Cloudflare and GitHub jobs only: generated HTML files can safely be
+    # pruned from site/. Do not remove directories or any user-authored files.
+    if os.environ.get('CF_PAGES') == '1' or os.environ.get('GITHUB_ACTIONS') == 'true':
+        active = set(item_list + deal_routes)
+        for group in ('providers', 'deals'):
+            for generated in (OUT/group).glob('*/index.html'):
+                relative = generated.relative_to(OUT).as_posix()
+                if relative.removesuffix('index.html') not in active:
+                    generated.unlink()
     save('404.html', '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"></head><body><h1>404 – Page not found</h1><p>This offer may have expired or been withdrawn.</p><a href="/">See verified VPS deals</a></body></html>')
     save('robots.txt', ('User-agent: *\nAllow: /\nSitemap: '+base+'/sitemap.xml\n') if host_ok else 'User-agent: *\nDisallow: /\n')
     routes=['','compare/']+item_list+deal_routes

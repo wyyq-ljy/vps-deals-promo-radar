@@ -81,6 +81,14 @@ class ThinPageTests(unittest.TestCase):
         self.assertIn("providers/ovhcloud/", "".join(providers))
         self.assertEqual(len(urls),2+len(active)+len(data["offers"]))
 
+    def test_unverified_legacy_provider_urls_redirect_to_real_comparison(self):
+        build.build()
+        redirects=(build.OUT/"_redirects").read_text("utf-8")
+        self.assertIn("/providers/hetzner/ /compare/ 301",redirects)
+        self.assertIn("/providers/hostzealot/ /compare/ 301",redirects)
+        self.assertNotIn("/providers/digitalocean/ /compare/ 301",redirects)
+        self.assertNotIn("/providers/ovhcloud/ /compare/ 301",redirects)
+
     def test_every_indexed_provider_is_real_evidence_not_a_shell(self):
         build.build()
         data=json.loads((ROOT/"data/offers.json").read_text("utf-8"))

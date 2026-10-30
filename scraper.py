@@ -73,6 +73,9 @@ def collect():
         except (OSError, ValueError):
             pass
     old_offers = {o['id']: o for o in previous.get('offers', []) if isinstance(o, dict) and o.get('id')}
+    old_prices = {(p.get('name'), row.get('model')): row
+                  for p in previous.get('providers', []) if isinstance(p, dict)
+                  for row in p.get('list_prices', []) if isinstance(row, dict) and row.get('model')}
     result = {"offers": [], "providers": [], "warnings": []}
     parsers = {"Hostinger": parse_hostinger, "IONOS": parse_ionos,
                "DreamHost": parse_dreamhost, "InMotion Hosting": parse_inmotion,
@@ -99,6 +102,15 @@ def collect():
             if len({p["model"] for p in prices}) >= 3 and all(
                     p["source_url"] == entry["source_url"] and p["currency"] == "USD"
                     for p in prices):
+                for item in prices:
+                    old = old_prices.get((entry["name"],item["model"]),{})
+                    meaningful = (
+                        {k:v for k,v in old.items() if k not in ("checked_at","last_changed_at")}
+                        == {k:v for k,v in item.items() if k != "checked_at"}
+                    )
+                    item["last_changed_at"] = (
+                        old.get("last_changed_at") or old.get("checked_at") or now
+                    ) if meaningful else now
                 row["list_prices"] = prices
             row["status"] = (
                 "verified_discounts" if offers else

@@ -49,7 +49,54 @@ def parse_digitalocean(html, checked):
             "Official standard Basic/Regular monthly cap; usage is billed per second, with a minimum charge.",
             SOURCES["DigitalOcean"], checked,
         )
-        if record: results.append(record)
+        if record:
+            record['family'] = 'Basic'
+            results.append(record)
+
+    # Four additional distinct official standard-CPU families have one visible
+    # "Regular" tab each. Never conflate these dedicated-CPU tiers with Basic.
+    families = (
+        ("CPU-Optimized", "CPU-Optimized Droplets", "General Purpose Droplets",
+         "Consistent dedicated CPU work such as encoding or analytics"),
+        ("General Purpose", "General Purpose Droplets", "Memory-Optimized Droplets",
+         "Balanced dedicated CPU for sustained application workloads"),
+        ("Memory-Optimized", "Memory-Optimized Droplets", "Storage-Optimized Droplets",
+         "Memory-intensive databases and in-memory workloads"),
+        ("Storage-Optimized", "Storage-Optimized Droplets", "v5 Droplets",
+         "Large local NVMe SSD storage and disk-intensive applications"),
+    )
+    pat_extra = re.compile(
+        r"\b(\d+ GiB)\s+(\d+ vCPUs?)\s+([\d,]+ GiB)\s+"
+        r"(1x)\s+([\d,]+ GiB)\s+\$([\d.]+)\s+\$\s*([\d,]+(?:\.\d{2})?)"
+    )
+    for family, start_title, end_title, workload in families:
+        start = text.find(start_title)
+        end = text.find(end_title, start + len(start_title))
+        if start < 0 or end < 0 or end <= start:
+            continue
+        section = text[start:end]
+        heading = "Memory vCPU Transfer SSD Variant SSD $/hr $/mo"
+        pos = section.find(heading)
+        if pos < 0:
+            continue
+        variants = section[pos + len(heading):]
+        for x in pat_extra.finditer(variants):
+            ram, cpu, transfer, variant, disk, hourly, monthly = x.groups()
+            try:
+                if Decimal(hourly) <= 0:
+                    continue
+            except InvalidOperation:
+                continue
+            record = row(
+                f"{family} Regular {ram} / {cpu}", monthly.replace(",",""),
+                cpu, ram, disk+" SSD", transfer,
+                f"Official Regular-tier dedicated-CPU monthly price. Typical use: {workload}. "
+                "Storage and data transfer are taken from the matching official table row.",
+                SOURCES["DigitalOcean"], checked,
+            )
+            if record:
+                record["family"] = family
+                results.append(record)
     return results
 
 def parse_buyvm(html, checked):

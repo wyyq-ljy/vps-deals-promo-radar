@@ -13,6 +13,7 @@ from template_engine import render
 from seo_helpers import breadcrumbs, itemlist, jsonld, sitemap_xml
 from social_card import create_png
 from public_copy import public_status
+from pricing_pages import build_pricing
 
 OUT = ROOT/'site'
 def e(value): return html.escape(str(value or ''), quote=True)
@@ -58,6 +59,7 @@ def build():
     affiliate_links = {p['name']:p['affiliate_url'] for p in configured if p.get('affiliate_url')}
     deal_routes, by_provider, deal_markup = build_deals(
         verified, page, save, name, base if host_ok else '', affiliate_links)
+    pricing_routes, pricing_redirects, pricing_changes, pricing_cards = build_pricing(data,save,page)
     cards=[]
     item_list=[]
     for index, p in enumerate(configured, 1):
@@ -81,6 +83,9 @@ def build():
         if not plan_rows and not valid_prices:
             # No factual, index-worthy comparison exists. Do not generate a
             # thin provider page or include it in navigation/sitemap.
+            continue
+        if valid_prices and not plan_rows:
+            cards.append(pricing_cards[name_p])
             continue
         item_list.append(route)
         public = e(public_status(fetched.get("status")))
@@ -179,14 +184,14 @@ def build():
         provider = entry['provider']
         if identifier != slug(identifier) or provider not in ('DigitalOcean', 'Hetzner'):
             raise ValueError('Invalid retired deal redirect')
-        destination = f'/providers/{slug(provider)}/' if f'providers/{slug(provider)}/' in item_list else '/compare/'
+        destination = f'/{slug(provider)}-pricing/' if provider in pricing_cards else (f'/providers/{slug(provider)}/' if f'providers/{slug(provider)}/' in item_list else '/compare/')
         redirect_lines.append(f'/deals/{identifier}/ {destination} 301')
     # Do not allow formerly published but now unsupported provider shells to
     # remain live merely because a Pages build reused its generated output.
     supported = set(item_list)
     absent = [
         f'providers/{slug(p["name"])}/' for p in configured
-        if f'providers/{slug(p["name"])}/' not in supported
+        if f'providers/{slug(p["name"])}/' not in supported and p['name'] not in pricing_cards
     ]
     redirect_lines.extend(f'/{route} /compare/ 301' for route in absent)    # Previously published promotions may later fail official verification.
     # Withdraw their old URLs without blocking a legitimately re-verified deal.
@@ -198,23 +203,35 @@ def build():
         if identifier not in current_ids:
             redirect_lines.append(f'/deals/{identifier}/ /compare/ 301')
 
+    redirect_lines.extend(pricing_redirects)
     save('_redirects', '# Retired ordinary-price deals and unsupported provider shells\n'
          + '\n'.join(redirect_lines) + '\n')
     # Cloudflare and GitHub jobs only: generated HTML files can safely be
     # pruned from site/. Do not remove directories or any user-authored files.
     if os.environ.get('CF_PAGES') == '1' or os.environ.get('GITHUB_ACTIONS') == 'true':
-        active = set(item_list + deal_routes)
+        active = set(item_list + deal_routes + pricing_routes)
         for group in ('providers', 'deals'):
             for generated in (OUT/group).glob('*/index.html'):
                 relative = generated.relative_to(OUT).as_posix()
                 if relative.removesuffix('index.html') not in active:
                     generated.unlink()
+    # Retire previously generated keyword URLs if their official price source
+    # no longer verifies; never serve stale standalone configuration pages.
+    if os.environ.get('CF_PAGES') == '1' or os.environ.get('GITHUB_ACTIONS') == 'true':
+        active_keyword = set(pricing_routes)
+        for generated in OUT.glob('*/index.html'):
+            name_dir = generated.parent.name
+            if (name_dir.endswith('-pricing') or name_dir.endswith('-cost')) and (
+                generated.relative_to(OUT).as_posix().removesuffix('index.html')
+                not in active_keyword
+            ):
+                generated.unlink()
     save('404.html', '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"></head><body><h1>404 – Page not found</h1><p>This offer may have expired or been withdrawn.</p><a href="/">See verified VPS deals</a></body></html>')
     save('robots.txt', ('User-agent: *\nAllow: /\nSitemap: '+base+'/sitemap.xml\n') if host_ok else 'User-agent: *\nDisallow: /\n')
-    routes=['','compare/']+item_list+deal_routes
+    routes=['','compare/']+item_list+pricing_routes+deal_routes
     # Source checks do not imply substantial page changes: lastmod tracks
     # initial detection or a changed price/term, not a rebuild/cron timestamp.
-    changes = {}
+    changes = dict(pricing_changes)
     for offer in verified:
         stamp = offer.get('last_changed_at') or offer.get('verified_at')
         changes['/' + route_for(offer)] = stamp

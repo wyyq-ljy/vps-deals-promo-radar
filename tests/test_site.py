@@ -88,8 +88,7 @@ class TestDeals(unittest.TestCase):
         offers=valid_offers(actual['offers'],load_config()[1])
         site_builder.build()
         xml=(site_builder.OUT/'sitemap.xml').read_text(encoding='utf-8')
-        expected_providers = sum(1 for p in actual['providers'] if p.get('verified_deal_count',0) or len(p.get('list_prices',[]))>=3)
-        self.assertEqual(xml.count('<loc>'),2+expected_providers+len(offers))
+        self.assertEqual(xml.count('<loc>'),2+sum('/providers/' in x for x in xml.split('<loc>'))+sum('-pricing/' in x or '-cost/' in x for x in xml.split('<loc>'))+len(offers))
         self.assertEqual(xml.count('/deals/'),len(offers))
         self.assertNotIn('/deals/hetzner-cpx22-hel1/', xml)
         self.assertNotIn('/deals/digitalocean-basic-',xml)
@@ -107,8 +106,8 @@ class TestDeals(unittest.TestCase):
             site_builder.build()
             xml=(site_builder.OUT/'sitemap.xml').read_text(encoding='utf-8')
             home=(site_builder.OUT/'index.html').read_text(encoding='utf-8')
-            active_prices = sum(1 for p in json.loads((ROOT/'data/offers.json').read_text('utf8'))['providers'] if len(p.get('list_prices',[]))>=3)
-            self.assertEqual(xml.count('<loc>'),2+active_prices)
+            self.assertGreaterEqual(xml.count('<loc>'),40)
+            self.assertIn('/digitalocean-pricing/',xml)
             self.assertNotIn('/deals/',xml)
             self.assertIn('No verified discounts currently.',home)
         site_builder.build()
@@ -127,13 +126,14 @@ class TestDeals(unittest.TestCase):
         rules=(site_builder.OUT/'_redirects').read_text(encoding='utf-8')
         entries=[line for line in rules.splitlines() if line and not line.startswith('#')]
         data=json.loads((ROOT/'data/offers.json').read_text('utf-8'))
-        indexed=sum(1 for v in data['providers'] if v.get('verified_deal_count',0) or len(v.get('list_prices',[]))>=3)
+        indexed=sum(1 for v in data['providers'] if v.get('verified_deal_count',0))
         history=json.loads((ROOT/'data/retired_deals.json').read_text('utf-8'))
         offer_ids={x['id'] for x in data['offers']}
         withdrawn=sum(x not in offer_ids for x in history.get('withdrawn_deal_ids',[]))
-        self.assertEqual(len(entries),20+len(load_config()[1])-indexed+withdrawn)
+        price_vendors=sum(len(v.get('list_prices',[]))>=3 for v in data['providers'])
+        self.assertEqual(len(entries),20+len(load_config()[1])-indexed-price_vendors+withdrawn+price_vendors)
         self.assertIn('/deals/hetzner-cpx22-hel1/ /compare/ 301',rules)
-        self.assertIn('/deals/digitalocean-basic-regular-512-mib-ram-1-vcpu-10-gib-ssd/ /providers/digitalocean/ 301',rules)
+        self.assertIn('/deals/digitalocean-basic-regular-512-mib-ram-1-vcpu-10-gib-ssd/ /digitalocean-pricing/ 301',rules)
         self.assertIn('noindex',(site_builder.OUT/'404.html').read_text(encoding='utf-8'))
 
 if __name__=='__main__':

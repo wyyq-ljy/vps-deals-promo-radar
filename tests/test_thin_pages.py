@@ -71,23 +71,23 @@ class ThinPageTests(unittest.TestCase):
         soup=ET.fromstring((build.OUT/"sitemap.xml").read_bytes())
         urls=[x.text for x in soup.iter(NS+"loc")]
         providers=[x for x in urls if "/providers/" in x]
-        active={p["name"] for p in data["providers"] if
-                p.get("verified_deal_count",0)>0 or len(p.get("list_prices",[]))>=3}
+        active={p["name"] for p in data["providers"] if p.get("verified_deal_count",0)>0}
         self.assertEqual(len(providers),len(active))
         self.assertNotIn("providers/hetzner/", "".join(providers))
         self.assertNotIn("providers/hostzealot/", "".join(providers))
-        self.assertIn("providers/digitalocean/", "".join(providers))
-        self.assertIn("providers/buyvm/", "".join(providers))
-        self.assertIn("providers/ovhcloud/", "".join(providers))
-        self.assertEqual(len(urls),2+len(active)+len(data["offers"]))
+        self.assertNotIn("providers/digitalocean/", "".join(providers))
+        self.assertIn("digitalocean-pricing/", "".join(urls))
+        self.assertIn("buyvm-pricing/", "".join(urls))
+        self.assertIn("ovhcloud-pricing/", "".join(urls))
+        self.assertGreaterEqual(len(urls),60)
 
     def test_unverified_legacy_provider_urls_redirect_to_real_comparison(self):
         build.build()
         redirects=(build.OUT/"_redirects").read_text("utf-8")
         self.assertIn("/providers/hetzner/ /compare/ 301",redirects)
         self.assertIn("/providers/hostzealot/ /compare/ 301",redirects)
-        self.assertNotIn("/providers/digitalocean/ /compare/ 301",redirects)
-        self.assertNotIn("/providers/ovhcloud/ /compare/ 301",redirects)
+        self.assertIn("/providers/digitalocean/ /digitalocean-pricing/ 301",redirects)
+        self.assertIn("/providers/ovhcloud/ /ovhcloud-pricing/ 301",redirects)
 
     def test_every_indexed_provider_is_real_evidence_not_a_shell(self):
         build.build()

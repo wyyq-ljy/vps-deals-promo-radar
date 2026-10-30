@@ -56,4 +56,13 @@ class PricingExpansionTests(unittest.TestCase):
         self.assertTrue(all(x['source_url']==SOURCE for x in official))
         self.assertEqual(live_verify('Unverified placeholder','now'),[])
 
+    def test_live_deal_provider_url_is_not_redirected_to_pricing(self):
+        import build
+        from pathlib import Path
+        build.build()
+        rules=(build.OUT/'_redirects').read_text('utf8')
+        for vendor in ('hostinger','ionos','dreamhost','hostarmada'):
+            self.assertNotIn(f'/providers/{vendor}/ /{vendor}-pricing/ 301',rules)
+            self.assertIn(f'/providers/{vendor}/', (build.OUT/'sitemap.xml').read_text('utf8'))
+
 if __name__=="__main__":unittest.main()

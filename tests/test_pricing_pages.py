@@ -46,9 +46,14 @@ class PricingFamily(unittest.TestCase):
   for path in ("digitalocean-cpu-optimized-pricing","digitalocean-general-purpose-pricing",
                "digitalocean-memory-optimized-pricing","digitalocean-storage-optimized-pricing"):
    self.assertIn(f"/{path}/ /digitalocean-pricing/ 301",rules)
-  for name in self.ready:
-   slug=name.lower().replace(" ","-")
-   self.assertIn(f"/providers/{slug}/ /{slug}-pricing/ 301",rules)
+   deal_providers={x['provider'] for x in self.data.get('offers',[])}
+   for name in self.ready:
+    slug=name.lower().replace(" ","-")
+    rule=f"/providers/{slug}/ /{slug}-pricing/ 301"
+    if name in deal_providers:
+     self.assertNotIn(rule,rules)
+    else:
+     self.assertIn(rule,rules)
  def test_each_vendor_main_includes_full_official_table(self):
   build.build()
   for name,records in self.ready.items():

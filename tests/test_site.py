@@ -137,7 +137,9 @@ class TestDeals(unittest.TestCase):
         supported={v['name'] for v in data['providers']
                    if v.get('verified_deal_count',0) or len(v.get('list_prices',[]))>=3}
         unsupported=len({p['name'] for p in load_config()[1]}-supported)
-        self.assertEqual(len(entries),20+unsupported+withdrawn+price_vendors+merged_cost+4)
+        dual_purpose=sum(bool(v.get('verified_deal_count')) and len(v.get('list_prices',[]))>=3
+                         for v in data['providers'])
+        self.assertEqual(len(entries),20+unsupported+withdrawn+price_vendors+merged_cost+4-dual_purpose)
         self.assertIn('/deals/hetzner-cpx22-hel1/ /hetzner-pricing/ 301',rules)
         self.assertIn('/deals/digitalocean-basic-regular-512-mib-ram-1-vcpu-10-gib-ssd/ /digitalocean-pricing/ 301',rules)
         self.assertIn('noindex',(site_builder.OUT/'404.html').read_text(encoding='utf-8'))

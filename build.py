@@ -203,7 +203,13 @@ def build():
         if identifier not in current_ids:
             redirect_lines.append(f'/deals/{identifier}/ /compare/ 301')
 
-    redirect_lines.extend(pricing_redirects)
+    # A vendor with verified discounts has a real provider page in the sitemap.
+    # Do not redirect that provider route to its (separate) pricing table.
+    active_provider_urls = {'/' + route for route in item_list}
+    redirect_lines.extend(
+        line for line in pricing_redirects
+        if line.split(' ', 1)[0] not in active_provider_urls
+    )
     save('_redirects', '# Retired ordinary-price deals and unsupported provider shells\n'
          + '\n'.join(redirect_lines) + '\n')
     # Cloudflare and GitHub jobs only: generated HTML files can safely be

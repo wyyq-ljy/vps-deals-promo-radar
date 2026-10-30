@@ -16,6 +16,8 @@ from extra_sources import parse_dreamhost, parse_inmotion, parse_ultahost
 from hostarmada_source import parse_hostarmada
 from standard_prices import PARSERS as STANDARD_PARSERS
 from high_volume_prices import parse_cloudways, parse_hetzner, HETZNER_JSON
+from official_pricing_expansion import read_snapshots, verified_snapshot_rows
+from dedicated_category import SOURCE as DEDICATED_SOURCE, live_verify as verify_dedicated
 
 USER_AGENT = "VPSPricingRadar/1.0 (+public pricing directory)"
 OUTPUT = ROOT / "data/offers.json"
@@ -74,6 +76,7 @@ def collect():
         except (OSError, ValueError):
             pass
     old_offers = {o['id']: o for o in previous.get('offers', []) if isinstance(o, dict) and o.get('id')}
+    snapshots = read_snapshots()
     old_prices = {(p.get('name'), row.get('model')): row
                   for p in previous.get('providers', []) if isinstance(p, dict)
                   for row in p.get('list_prices', []) if isinstance(row, dict) and row.get('model')}
@@ -92,12 +95,14 @@ def collect():
             row["page_title"] = " ".join("".join(title.text).split())[:180]
             parser = parsers.get(entry["name"])
             standard = STANDARD_PARSERS.get(entry["name"])
-            if not parser and not standard and entry['name'] not in ('Cloudways','Hetzner'):
+            if not parser and not standard and entry['name'] not in ('Cloudways','Hetzner') and entry['name'] not in snapshots:
                 # A valid official URL is not sufficient to create an indexed page.
                 row["status"] = "parser_not_implemented"
                 return row, [], None
             offers = parser(source_html, now) if parser else []
-            if entry['name'] == 'Cloudways':
+            if entry['name'] in snapshots:
+                prices = verified_snapshot_rows(entry['name'],source_html,now,entry['source_url'],snapshots)
+            elif entry['name'] == 'Cloudways':
                 prices = parse_cloudways(source_html, now)
             elif entry['name'] == 'Hetzner':
                 prices = parse_hetzner(source_html,read_official(HETZNER_JSON),now)
@@ -153,8 +158,14 @@ def collect():
     # Zero verified deals is a valid outcome. In particular, never preserve
     # old "standard_list_price" rows as live deals.
     result["offers"].sort(key=lambda x: (x["provider"], x["plan"]))
+    # Physical dedicated servers are not VPS deals. Never retain stale prices.
+    try:
+        result["dedicated_prices"] = verify_dedicated(read_official(DEDICATED_SOURCE),now)
+    except Exception as exc:
+        result["dedicated_prices"] = []
+        result["warnings"].append('Dedicated category: '+type(exc).__name__)
     result["generated_at"] = now
-    if any(previous.get(k) != result[k] for k in ('offers', 'providers', 'warnings')):
+    if any(previous.get(k) != result[k] for k in ('offers', 'providers', 'warnings', 'dedicated_prices')):
         OUTPUT.parent.mkdir(parents=True, exist_ok=True)
         staging = OUTPUT.with_suffix(".json.tmp")
         staging.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

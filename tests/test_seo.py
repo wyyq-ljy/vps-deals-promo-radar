@@ -96,7 +96,7 @@ class SEOAndAutomation(unittest.TestCase):
         for row in root.findall(NS + "url"):
             url = row.find(NS + "loc").text
             lm = row.find(NS + "lastmod")
-            if "/deals/" in url or url.rstrip("/").endswith("-pricing"):
+            if "/deals/" in url or url.rstrip("/").endswith("-pricing") or url.endswith("/dedicated-server-hosting-price/"):
                 self.assertIsNotNone(lm)
                 self.assertRegex(lm.text, r"^\d{4}-\d{2}-\d{2}$")
             else:

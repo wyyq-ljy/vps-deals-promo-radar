@@ -88,7 +88,7 @@ class TestDeals(unittest.TestCase):
         offers=valid_offers(actual['offers'],load_config()[1])
         site_builder.build()
         xml=(site_builder.OUT/'sitemap.xml').read_text(encoding='utf-8')
-        self.assertEqual(xml.count('<loc>'),2+sum('/providers/' in x for x in xml.split('<loc>'))+sum('-pricing/' in x for x in xml.split('<loc>'))+len(offers))
+        self.assertEqual(xml.count('<loc>'),2+sum('/providers/' in x for x in xml.split('<loc>'))+sum('-pricing/' in x for x in xml.split('<loc>'))+len(offers)+int(bool(actual.get('dedicated_prices'))))
         self.assertEqual(xml.count('/deals/'),len(offers))
         self.assertNotIn('/deals/hetzner-cpx22-hel1/', xml)
         self.assertNotIn('/deals/digitalocean-basic-',xml)
@@ -132,7 +132,12 @@ class TestDeals(unittest.TestCase):
         withdrawn=sum(x not in offer_ids for x in history.get('withdrawn_deal_ids',[]))
         price_vendors=sum(len(v.get('list_prices',[]))>=3 for v in data['providers'])
         merged_cost=sum(len(v.get('list_prices',[])) for v in data['providers'])
-        self.assertEqual(len(entries),20+len(load_config()[1])-indexed-price_vendors+withdrawn+price_vendors+merged_cost+4)
+        # Deal-bearing vendors can also have verified pricing tables. The old
+        # subtraction double-counted that overlap as unsupported vendors.
+        supported={v['name'] for v in data['providers']
+                   if v.get('verified_deal_count',0) or len(v.get('list_prices',[]))>=3}
+        unsupported=len({p['name'] for p in load_config()[1]}-supported)
+        self.assertEqual(len(entries),20+unsupported+withdrawn+price_vendors+merged_cost+4)
         self.assertIn('/deals/hetzner-cpx22-hel1/ /hetzner-pricing/ 301',rules)
         self.assertIn('/deals/digitalocean-basic-regular-512-mib-ram-1-vcpu-10-gib-ssd/ /digitalocean-pricing/ 301',rules)
         self.assertIn('noindex',(site_builder.OUT/'404.html').read_text(encoding='utf-8'))

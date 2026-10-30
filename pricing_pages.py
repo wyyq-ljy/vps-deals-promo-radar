@@ -21,6 +21,13 @@ NOTES = {
  "BuyVM":"The vendor publishes a named KVM slice monthly rate; stock and any optional extras must be checked separately.",
  "Cloudways":"Published managed DigitalOcean Standard server rates include Cloudways management; taxes and optional backup fees are separate.",
  "Hetzner":"USD monthly cap for US Hillsboro HIL1 location, before VAT and optional IPv4, cross-checked with current first-party pricing JSON. Some configurations may be temporarily unavailable.",
+ "Hostinger":"USD introductory rate for prepaid 24-month KVM plans. Renewal costs are higher.",
+ "DreamHost":"First-three-month USD promotional prices for VPS Stack plans; regular renewal pricing differs.",
+ "IONOS":"First-three-month USD VPS+ introductory rate requires a 12-month contract; remaining months cost more.",
+ "Kamatera":"Published recommended configurations; customize server and add-ons at checkout for a different total.",
+ "Hostwinds":"Unmanaged Linux VPS standard USD monthly rates; confirm term, taxes and software extras.",
+ "HostArmada":"Promotional USD per-month equivalent on the selected 12-month term; renewal pricing can change.",
+ "UpCloud":"Global USD Starter and Premium server rates, hourly metering with monthly cap, zero-cost egress subject to fair use.",
 }
 def esc(x):return html.escape(str(x or ""),quote=True)
 def slug(x):return re.sub("-+","-",re.sub("[^a-z0-9]+","-",x.lower())).strip("-")
@@ -91,9 +98,19 @@ def build_pricing(data,save,page,base=''):
     path=f'{slug(left)}-vs-{slug(right)}-pricing/'
     text+=f'<p><a href="/{path}">{esc(left)} vs {esc(right)} pricing</a>: CPU, RAM, SSD and USD monthly rate comparison.</p>'
    text+='</section>'
-  text+=(f'<section class="card"><h2>How billing works</h2><p>{esc(NOTES[name])}</p>'
-         f'{evidence(items[0])}</section>')
-  write(main,f'{name} Pricing {items[0]["checked_at"][:7]} — Official USD Monthly Costs',
+  legacy=name in ("DigitalOcean","Hetzner","Cloudways","OVHcloud","BuyVM")
+  if legacy:
+   # Preserve the existing mature-page title and content format.
+   text+=(f'<section class="card"><h2>How billing works</h2><p>{esc(NOTES[name])}</p>'
+          f'{evidence(items[0])}</section>')
+   title=f'{name} Pricing {items[0]["checked_at"][:7]} — Official USD Monthly Costs'
+  else:
+   terms=list(dict.fromkeys(r['price_note'] for r in items))
+   details=''.join(f'<p>{esc(term)}</p>' for term in terms[:8])
+   text+=(f'<section class="card"><h2>How billing works</h2><p>{esc(NOTES[name])}</p>'
+          +details+f'{evidence(items[0])}</section>')
+   title=f'{name} Pricing 2026 — Official USD Monthly Costs'
+  write(main,title,
         f'Official {name} pricing, RAM, CPU, storage and USD monthly costs across {len(items)} configurations.',text,items)
   # No individual configuration has a supplied >=100 US monthly search
   # volume. Consolidate every former /...-cost/ URL into its evidence-backed
@@ -140,4 +157,23 @@ def build_pricing(data,save,page,base=''):
           +evidence(a[0])+evidence(b[0])+'</section>')
   write(route,f'{left} vs {right} Pricing — USD Cost Comparison',
         f'{left} vs {right} official monthly prices and individual CPU, RAM, SSD configurations with source and UTC verification.',detail,a+b)
+ physical=data.get('dedicated_prices') or []
+ physical=rows_of({'source_url':'https://www.inmotionhosting.com/dedicated-servers',
+                   'list_prices':physical})
+ if physical:
+  path='dedicated-server-hosting-price/'
+  intro=('<div class="eyebrow">Physical dedicated servers: verified USD prices</div>'
+         '<h1>Dedicated Server Hosting Price 2026</h1>'
+         '<p class="lead">Compare five published InMotion Hosting single-tenant dedicated server configurations, '
+         'not VPS instances. Each rate is tied to a 12-month billing term; hardware and renewal prices vary. '
+         'Only one physical-server provider has a complete verified table here, so this is not a market-wide lowest-price ranking.</p>')
+  detail=(intro+'<section class="card"><h2>Dedicated physical server configurations</h2>'
+          +row_table('InMotion Hosting',physical)+'</section>'
+          '<section class="card"><h2>Contract, network and renewal conditions</h2>'
+          +''.join(f'<p><strong>{esc(x["model"])}:</strong> {esc(x["price_note"])} '
+                   f'Transfer: {esc(x["transfer"])}.</p>' for x in physical)
+          +evidence(physical[0])+'</section>'
+          '<p><a href="/compare/">Compare VPS pricing and provider categories</a></p>')
+  write(path,'Dedicated Server Hosting Price 2026 — Official USD Monthly Plans',
+        'Compare five confirmed physical dedicated servers with RAM, CPU, disk, bandwidth and official USD 12-month rates.',detail,physical)
  return routes,redirects,changes,cards

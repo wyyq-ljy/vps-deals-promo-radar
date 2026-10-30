@@ -1,6 +1,6 @@
 # VPS Deals — Official Pricing Radar
 
-Independent, source-linked directory of VPS providers. Updated by a deterministic Python workflow. **Not all public prices are promotions.** Prices are omitted unless the parser can verify an explicit current price and plan on an official page. Verify billing terms with the provider before purchasing.
+Independent, source-linked directory with **one deal page per verified VPS plan**. A deal here means a plan price listing—not a coupon or necessarily a discount. DigitalOcean Basic Regular Droplets are parsed from the official pricing table; Hetzner CPX/CCX models are parsed from Hetzner's public pricing JSON for HEL1 in USD. If a specific plan lacks a valid monthly price it is skipped. Prices include source URL, machine configuration, verification time and important billing conditions. Verify checkout prices, taxes, regional availability and extra IP charges with the provider.
 
 ## Quick start
 
@@ -18,7 +18,7 @@ Use **Connect to Git** (production branch `main`), build command `python build.p
 
 ## Update automation
 
-`.github/workflows/update.yml` runs every six hours, checks sources conservatively, builds and tests, then commits updated verified data only when changed. GitHub may delay scheduled runs, and inactive public repositories may have scheduled workflows disabled after 60 days without repository activity. Monitor workflow failures. Source fetch failures do not become invented offers.
+`.github/workflows/update.yml` runs every six hours, checks official sources, builds and tests, then commits updated verified data. If *all* source prices fail, `scraper.py` raises an error **without overwriting the last verified data**; GitHub Actions reports a failed run, instead of deleting every deal. If just one source fails, its unverifiable plans are omitted from that successful refresh. A past verified price is not a guarantee of current availability; each deal shows its verification timestamp. Scheduled GitHub Actions runs may be delayed or disabled after prolonged inactivity; monitor failures.
 
 ## Compliance & monetization
 

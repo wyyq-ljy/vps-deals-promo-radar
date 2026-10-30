@@ -2,7 +2,7 @@
 [TYPE:config][PROJECT:vps-deals][LANG:zh]
 ::STATE{@SITE, brand:vps-deals, niche:VPS hosting offers, domain:vps-deals-promo-radar-mim.pages.dev, base_url:https://vps-deals-promo-radar-mim.pages.dev, locale:en-US, currency:USD, frequency_hours:6}
 ::MODULE{PROVIDERS|title:官方提供商和抓取来源}
-DigitalOcean | https://www.digitalocean.com | https://www.digitalocean.com/solutions/vps-hosting |
+DigitalOcean | https://www.digitalocean.com | https://www.digitalocean.com/pricing/droplets |
 Hetzner | https://www.hetzner.com | https://www.hetzner.com/cloud/ |
 Vultr | https://www.vultr.com | https://www.vultr.com/pricing/ |
 Linode | https://www.linode.com | https://www.linode.com/pricing/ |

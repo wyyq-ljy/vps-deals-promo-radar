@@ -5,6 +5,9 @@
 以官方同页标示的常规价和真实促销价差为唯一 deal 准入条件；生成可追溯优惠页、厂商目录、对比页。
 ::MODULE{PERMISSIONS|title:允许的修改}
 修复爬虫、增加验证测试、改模板、添加官方数据源、修复无效链接。
+::RULE{空壳厂商不生成页面也不进入sitemap,仅有真实deal或至少三条官方USD型号价格能索引}
+::RULE{官方标价页与促销deal页严格分开,价格出处+核实时间+计费说明齐全}
+::RULE{所有内部状态编码必须由public_copy映射,未知状态也使用人话兜底}
 ::BOUNDARY{never:发明价格 优惠 佣金 到期日期 伪造评价 绕过反爬 抓登录数据 静默替换官网链接|scope:permanent}
 ::RULE{scraper.py build.py 都必须读取 .ilang/site.ilang}
 ::RULE{找不到同一型号官方常规原价+促销价+条件 => 0条deal,仅保留厂商页}

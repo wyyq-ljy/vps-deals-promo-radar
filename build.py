@@ -11,6 +11,7 @@ from deal_site import valid_offers, build_deals, short_card, route_for
 from template_engine import render
 from seo_helpers import breadcrumbs, itemlist, jsonld, sitemap_xml
 from social_card import create_png
+from public_copy import public_status
 
 OUT = ROOT/'site'
 def e(value): return html.escape(str(value or ''), quote=True)
@@ -58,40 +59,95 @@ def build():
         verified, page, save, name, base if host_ok else '', affiliate_links)
     cards=[]
     item_list=[]
-    for index, p in enumerate(configured,1):
-        name_p = p['name']
+    for index, p in enumerate(configured, 1):
+        name_p = p["name"]
         fetched = providers.get(name_p, {})
-        route = f'providers/{slug(name_p)}/'
-        official = p['source_url']
+        route = f"providers/{slug(name_p)}/"
+        official = p["source_url"]
         plan_rows = by_provider.get(name_p, [])
-        count = len(plan_rows)
-        card = (f'<article class="card"><div class="eyebrow">Provider {index:02d}</div>'
-                f'<h2>{e(name_p)}</h2><p>{count} independently verified live discount offers. '
-                f'{"No verified discount currently." if count == 0 else "See the current old-versus-new price comparisons."}</p>'
-                f'<div class="actions"><a href="/{route}">Details</a>'
-                f'<a class="secondary" href="{e(official)}" rel="noopener noreferrer" target="_blank">Official source ↗</a></div></article>')
-        cards.append(card)
+        prices = fetched.get("list_prices") or []
+        # 3+ independently verified named rows, checked source and USD
+        # are mandatory before standard-price content is published.
+        valid_prices = [
+            x for x in prices if isinstance(x,dict) and
+            all(isinstance(x.get(k),str) and x[k] for k in (
+                "model","monthly_usd","currency","cpu","memory","storage",
+                "price_note","source_url","checked_at"
+            )) and x["source_url"] == official and x["currency"] == "USD"
+        ]
+        if len(valid_prices) < 3 or len({x["model"] for x in valid_prices}) != len(valid_prices):
+            valid_prices = []
+        if not plan_rows and not valid_prices:
+            # No factual, index-worthy comparison exists. Do not generate a
+            # thin provider page or include it in navigation/sitemap.
+            continue
         item_list.append(route)
-        service = {'@context':'https://schema.org', '@type':'Service',
-                   'name':f'{name_p} VPS hosting',
-                   'provider':{'@type':'Organization','name':name_p,'url':p['website']}}
+        public = e(public_status(fetched.get("status")))
+        service = {
+            "@context":"https://schema.org","@type":"Service",
+            "name": f"{name_p} VPS hosting",
+            "provider":{"@type":"Organization","name":name_p,"url":p["website"]},
+        }
         if plan_rows:
-            service['offers'] = [
-                {'@type':'Offer','price':x['promo_monthly_usd'],
-                 'priceCurrency':x['currency'],'url':x['offer_url']}
+            card = (
+                f'<article class="card"><div class="eyebrow">Verified discount source</div>'
+                f'<h2>{e(name_p)}</h2><p>{len(plan_rows)} verified current VPS discounts, '
+                'with first-term and renewal terms where published.</p>'
+                f'<div class="actions"><a href="/{route}">View verified offers</a></div></article>'
+            )
+            service["offers"] = [
+                {"@type":"Offer","price":x["promo_monthly_usd"],
+                 "priceCurrency":x["currency"],"url":x["offer_url"]}
                 for x in plan_rows
             ]
-        structured = jsonld(service)
-        if host_ok:
-            structured += breadcrumbs(base, [('Home',''), (name_p,route)])
-        body = render('provider.html', provider_name=e(name_p), count=str(count),
-                      status_message=('No verified discount currently. Check back after our next source scan.'
-                                      if count == 0 else 'Every offer has evidence of a lower price against the same-page regular price.'),
-                      source_status=e(fetched.get('status','not checked')),
-                      source_url=e(official),
-                      deal_cards=''.join(short_card(item) for item in plan_rows),
-                      structured_data=structured)
-        save(route+'index.html',page(f'{name_p} VPS Pricing — Official Sources | {name}',f'Official {name_p} VPS pricing source and verification status. No unverified deals or estimates.',body,route))
+            structured = jsonld(service)
+            if host_ok:structured += breadcrumbs(base,[("Home",""),(name_p,route)])
+            body = render(
+                "provider.html",provider_name=e(name_p),
+                count=str(len(plan_rows)),status_message=public,
+                source_url=e(official),
+                deal_cards="".join(short_card(item) for item in plan_rows),
+                structured_data=structured,
+            )
+            page_title = f"{name_p} verified VPS discounts | {name}"
+            description = f"Verify official discounts for {name_p} VPS plans, with actual price differences and billing conditions."
+        else:
+            card = (
+                f'<article class="card"><div class="eyebrow">Official standard pricing</div>'
+                f'<h2>{e(name_p)}</h2><p>{len(valid_prices)} specific USD '
+                'configurations verified from the provider. These are not discounts.</p>'
+                f'<div class="actions"><a href="/{route}">Compare standard rates</a></div></article>'
+            )
+            lines = "".join(
+                "<tr>" + "".join(
+                    f'<td style="border-bottom:1px solid #ddd;padding:12px 10px">{e(v)}</td>'
+                    for v in (
+                        x["model"], "$"+x["monthly_usd"]+"/mo",
+                        x["cpu"], x["memory"], x["storage"]
+                    )
+                ) + "</tr>" for x in valid_prices
+            )
+            notes = "".join(
+                f'<p><strong>{e(x["model"])}:</strong> {e(x["price_note"])} '
+                f'Transfer: {e(x.get("transfer","See provider terms"))}.</p>'
+                for x in valid_prices
+            )
+            structured = jsonld(service)
+            if host_ok:structured += breadcrumbs(base,[("Home",""),(name_p,route)])
+            body = render(
+                "provider_standard.html",provider_name=e(name_p),
+                public_status=public,
+                plan_count=str(len(valid_prices)),
+                price_rows=lines,
+                price_notes=notes,
+                checked_at=e(valid_prices[0]["checked_at"]),
+                source_url=e(official),
+                structured_data=structured,
+            )
+            page_title = f"{name_p} standard VPS prices and configurations | {name}"
+            description = f"Compare {len(valid_prices)} verified USD standard VPS configurations on the official {name_p} price list. No coupon claims."
+        cards.append(card)
+        save(route+"index.html", page(page_title,description,body,route))
     cards_markup=''.join(cards)
     item_schema = itemlist(base if host_ok else '', item_list)
     intro=f'<div class="eyebrow">Independent • verified VPS savings • direct official sources</div><h1>Find actual VPS discounts.<br><em>Check the real price difference.</em></h1><p class="lead">We only publish an offer when a provider displays both its regular and lower promotional price for the same VPS plan. Review the first-term commitment, renewal costs, and linked evidence before ordering.</p>'
@@ -122,11 +178,12 @@ def build():
         provider = entry['provider']
         if identifier != slug(identifier) or provider not in ('DigitalOcean', 'Hetzner'):
             raise ValueError('Invalid retired deal redirect')
-        redirect_lines.append(f'/deals/{identifier}/ /providers/{slug(provider)}/ 301')
+        destination = f'/providers/{slug(provider)}/' if f'providers/{slug(provider)}/' in item_list else '/compare/'
+        redirect_lines.append(f'/deals/{identifier}/ {destination} 301')
     save('_redirects', '# Legacy list-price pages are not discounts\n'+'\n'.join(redirect_lines)+'\n')
     save('404.html', '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"></head><body><h1>404 – Page not found</h1><p>This offer may have expired or been withdrawn.</p><a href="/">See verified VPS deals</a></body></html>')
     save('robots.txt', ('User-agent: *\nAllow: /\nSitemap: '+base+'/sitemap.xml\n') if host_ok else 'User-agent: *\nDisallow: /\n')
-    routes=['','compare/']+[f'providers/{slug(p["name"])}/' for p in configured]+deal_routes
+    routes=['','compare/']+item_list+deal_routes
     # Source checks do not imply substantial page changes: lastmod tracks
     # initial detection or a changed price/term, not a rebuild/cron timestamp.
     changes = {}

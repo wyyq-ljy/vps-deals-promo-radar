@@ -40,12 +40,12 @@ class SEOAndAutomation(unittest.TestCase):
     def test_provider_change_in_ilang_changes_page(self):
         # Project config is not hard-coded inside build().
         modified = [dict(p) for p in self.providers]
-        modified[-1]["name"] = "NewBrand"
+        modified[2]["name"] = "NewBrand"
         with patch.object(build, "load_config", return_value=(self.site, modified)):
             build.build()
-        provider = (build.OUT / "providers" / "newbrand" / "index.html")
-        self.assertTrue(provider.exists())
-        self.assertIn("NewBrand VPS deals", provider.read_text("utf-8"))
+        sitemap = (build.OUT / "sitemap.xml").read_text("utf-8")
+        self.assertNotIn("/providers/hostinger/", sitemap)
+        self.assertNotIn("/providers/newbrand/", sitemap)
         build.build()
 
     def test_existing_deal_snippets_validate_schema_and_og(self):
@@ -91,7 +91,8 @@ class SEOAndAutomation(unittest.TestCase):
         build.build()
         root = ET.fromstring((build.OUT / "sitemap.xml").read_bytes())
         locs = [u.find(NS + "loc").text for u in root.findall(NS + "url")]
-        self.assertEqual(len(locs), 2 + len(self.providers) + len(valid_offers(self.data["offers"], self.providers)))
+        indexable_count = sum(1 for p in self.data["providers"] if p.get("verified_deal_count",0) or len(p.get("list_prices",[]))>=3)
+        self.assertEqual(len(locs), 2 + indexable_count + len(valid_offers(self.data["offers"], self.providers)))
         for row in root.findall(NS + "url"):
             url = row.find(NS + "loc").text
             lm = row.find(NS + "lastmod")

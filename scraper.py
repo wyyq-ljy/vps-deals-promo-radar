@@ -14,6 +14,7 @@ from config import ROOT, load_config
 from pricing_sources import parse_hostinger, parse_ionos
 from extra_sources import parse_dreamhost, parse_inmotion, parse_ultahost
 from hostarmada_source import parse_hostarmada
+from standard_prices import PARSERS as STANDARD_PARSERS
 
 USER_AGENT = "VPSPricingRadar/1.0 (+public pricing directory)"
 OUTPUT = ROOT / "data/offers.json"
@@ -79,20 +80,31 @@ def collect():
 
     def check_provider(entry):
         row = dict(entry)
-        row.update(status="not_checked", page_title="", verified_deal_count=0)
+        row.update(status="not_checked", page_title="", verified_deal_count=0, list_prices=[])
         try:
             source_html = read_official(entry["source_url"])
             title = Title()
             title.feed(source_html)
             row["page_title"] = " ".join("".join(title.text).split())[:180]
             parser = parsers.get(entry["name"])
-            if not parser:
-                # A reachable provider page is not proof of no promotions.
-                # Never assert that unsupported markup was price-validated.
+            standard = STANDARD_PARSERS.get(entry["name"])
+            if not parser and not standard:
+                # A valid official URL is not sufficient to create an indexed page.
                 row["status"] = "parser_not_implemented"
                 return row, [], None
-            offers = parser(source_html, now)
-            row["status"] = "verified_discounts" if offers else "no_verified_discount"
+            offers = parser(source_html, now) if parser else []
+            prices = standard(source_html, now) if standard else []
+            # A standard-rate comparison requires >=3 distinct complete named
+            # configurations. Never export a partial price table as an indexable page.
+            if len({p["model"] for p in prices}) >= 3 and all(
+                    p["source_url"] == entry["source_url"] and p["currency"] == "USD"
+                    for p in prices):
+                row["list_prices"] = prices
+            row["status"] = (
+                "verified_discounts" if offers else
+                "standard_prices_verified" if row["list_prices"] else
+                "no_verified_discount"
+            )
             return row, offers, None
         except Exception as exc:
             row["status"] = "robots_blocked" if isinstance(exc, PermissionError) else "fetch_failed"
